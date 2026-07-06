@@ -1,20 +1,20 @@
 {
   "name": "bizlogicx-portal",
-  "version": "1.0.0",
-  "description": "Biz LogicX shipment management portal with auth and MongoDB-backed storage",
+  "version": "2.0.0",
+  "description": "Biz LogicX - Professional Shipment Management Portal",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
     "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.1",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.17.0",
-    "mongodb-memory-server": "^10.1.0"
+    "dotenv": "^16.0.3",
+    "mongodb-memory-server": "^9.1.6"
   }
 }
