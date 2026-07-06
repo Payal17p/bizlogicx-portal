@@ -41,16 +41,16 @@ function showLoginScreen() {
         <p class="subtitle">Professional Logistics Platform</p>
         
         <div class="tab-buttons">
-          <button class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
-          <button class="tab-btn" onclick="switchAuthTab('register')">Register</button>
-          <button class="tab-btn" onclick="switchAuthTab('forgot')">Forgot Password</button>
+          <button class="tab-btn active" onclick="switchAuthTab('login', this)">Login</button>
+          <button class="tab-btn" onclick="switchAuthTab('register', this)">Register</button>
+          <button class="tab-btn" onclick="switchAuthTab('forgot', this)">Forgot Password</button>
         </div>
 
         <div id="authMessage" class="auth-message" style="display: none;"></div>
 
         <form id="loginForm" style="display: block;">
           <div class="form-group">
-            <label>Username</label>
+            <label>Username or Email</label>
             <input type="text" name="username" required>
           </div>
           <div class="form-group">
@@ -112,12 +112,13 @@ function showLoginScreen() {
   document.getElementById('forgotForm').addEventListener('submit', handleForgotPassword);
 }
 
-function switchAuthTab(tab) {
+function switchAuthTab(tab, button) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('form').forEach(f => f.style.display = 'none');
   document.getElementById('authMessage').style.display = 'none';
   
-  event.target.classList.add('active');
+  const activeButton = button || document.querySelector(`.tab-btn[onclick*="${tab}"]`);
+  if (activeButton) activeButton.classList.add('active');
   if (tab === 'login') {
     document.getElementById('loginForm').style.display = 'block';
   } else if (tab === 'register') {
@@ -273,10 +274,10 @@ function showMainApp() {
           <span>Biz LogicX</span>
         </div>
         <ul class="nav">
-          <li><a class="nav-item active" onclick="switchTab('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-          <li><a class="nav-item" onclick="switchTab('shipment')"><i class="fas fa-plus-circle"></i> New Shipment</a></li>
-          <li><a class="nav-item" onclick="switchTab('logs')"><i class="fas fa-list"></i> Shipment Logs</a></li>
-          <li><a class="nav-item" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings</a></li>
+          <li><a class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+          <li><a class="nav-item" data-tab="shipment" onclick="switchTab('shipment', this)"><i class="fas fa-plus-circle"></i> New Shipment</a></li>
+          <li><a class="nav-item" data-tab="logs" onclick="switchTab('logs', this)"><i class="fas fa-list"></i> Shipment Logs</a></li>
+          <li><a class="nav-item" data-tab="settings" onclick="switchTab('settings', this)"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
       </aside>
 
@@ -298,10 +299,11 @@ function showMainApp() {
   switchTab('dashboard');
 }
 
-function switchTab(tab) {
+function switchTab(tab, navItem) {
   currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  event.target.closest('a').classList.add('active');
+  const activeItem = navItem || document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  if (activeItem) activeItem.classList.add('active');
   
   const titles = {
     dashboard: 'Executive Dashboard',

@@ -7,11 +7,10 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bizlogicx-dev-secret-key-2024';
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '5mb' }));
@@ -21,12 +20,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ─────────────────────── MONGOOSE SCHEMAS ───────────────────────
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, lowercase: true },
+  username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   fullName: { type: String, default: 'Operator' },
   company: { type: String, default: 'Biz LogicX' },
-  email: String,
-  phone: String,
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  phone: { type: String, trim: true },
   resetToken: String,
   resetTokenExpiry: Date,
   createdAt: { type: Date, default: Date.now }
@@ -124,6 +123,33 @@ const shipmentSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Shipment = mongoose.model('Shipment', shipmentSchema);
 
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: isProduction ? 'none' : 'lax',
+  secure: isProduction,
+  maxAge: 30 * 24 * 60 * 60 * 1000
+};
+
+function normalizeText(value) {
+  return String(value || '').trim();
+}
+
+function normalizeEmail(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidUsername(username) {
+  return /^[a-z0-9._-]{3,30}$/.test(username);
+}
+
+function isStrongEnoughPassword(password) {
+  return typeof password === 'string' && password.length >= 6;
+}
+
 // ─────────────────────── MIDDLEWARE ───────────────────────
 
 function createToken(user) {
@@ -155,25 +181,40 @@ app.get('/api/health', (req, res) => {
 
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
-  const { username, password, fullName, email, phone } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ ok: false, message: 'Username and password required' });
+  const username = normalizeText(req.body.username).toLowerCase();
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password;
+  const fullName = normalizeText(req.body.fullName);
+  const phone = normalizeText(req.body.phone);
+
+  if (!username || !email || !password || !fullName) {
+    return res.status(400).json({ ok: false, message: 'Full name, email, username and password are required' });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ ok: false, message: 'Enter a valid email address' });
+  }
+  if (!isValidUsername(username)) {
+    return res.status(400).json({ ok: false, message: 'Username must be 3-30 characters and use only letters, numbers, dot, underscore or hyphen' });
+  }
+  if (!isStrongEnoughPassword(password)) {
+    return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters' });
   }
   try {
-    const existing = await User.findOne({ username: username.toLowerCase() });
+    const existing = await User.findOne({ $or: [{ username }, { email }] });
     if (existing) {
-      return res.status(409).json({ ok: false, message: 'Username already exists' });
+      const field = existing.email === email ? 'Email' : 'Username';
+      return res.status(409).json({ ok: false, message: `${field} already exists` });
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
-      username: username.toLowerCase(),
+      username,
       passwordHash,
-      fullName: fullName || 'Operator',
+      fullName,
       email,
       phone
     });
     const token = createToken(user);
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+    res.cookie('token', token, cookieOptions);
     res.status(201).json({
       ok: true,
       user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email },
@@ -181,26 +222,33 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'Account';
+      return res.status(409).json({ ok: false, message: `${field} already exists` });
+    }
     res.status(500).json({ ok: false, message: 'Registration failed' });
   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
+  const username = normalizeText(req.body.username).toLowerCase();
+  const password = req.body.password;
   if (!username || !password) {
-    return res.status(400).json({ ok: false, message: 'Username and password required' });
+    return res.status(400).json({ ok: false, message: 'Username/email and password are required' });
   }
   try {
-    const user = await User.findOne({ username: username.toLowerCase() });
+    const user = await User.findOne({
+      $or: [{ username }, { email: normalizeEmail(username) }]
+    });
     if (!user) {
-      return res.status(401).json({ ok: false, message: 'Username not found' });
+      return res.status(401).json({ ok: false, message: 'Invalid username/email or password' });
     }
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatch) {
-      return res.status(401).json({ ok: false, message: 'Incorrect password' });
+      return res.status(401).json({ ok: false, message: 'Invalid username/email or password' });
     }
     const token = createToken(user);
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+    res.cookie('token', token, cookieOptions);
     res.json({
       ok: true,
       user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email },
@@ -213,13 +261,17 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', cookieOptions);
   res.json({ ok: true });
 });
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).lean();
+    if (!user) {
+      res.clearCookie('token', cookieOptions);
+      return res.status(401).json({ ok: false, message: 'User not found' });
+    }
     res.json({
       ok: true,
       user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email }
@@ -488,14 +540,18 @@ app.get('*', (req, res) => {
 
 async function start() {
   try {
-    let mongoUri = process.env.MONGODB_URI;
+    const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
-      const memoryServer = await MongoMemoryServer.create();
-      mongoUri = memoryServer.getUri();
-      console.log('✓ Using in-memory MongoDB for local development');
+      throw new Error('MONGODB_URI is required. Add it to .env locally and to Render environment variables.');
     }
 
-    await mongoose.connect(mongoUri);
+    if (isProduction && JWT_SECRET === 'bizlogicx-dev-secret-key-2024') {
+      throw new Error('JWT_SECRET must be set in production.');
+    }
+
+    await mongoose.connect(mongoUri, {
+      dbName: process.env.MONGODB_DB || undefined
+    });
     console.log('✓ Connected to MongoDB');
 
     app.listen(PORT, () => {
