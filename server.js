@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema({
   company: { type: String, default: 'Biz LogicX' },
   email: String,
   phone: String,
+  resetToken: String,
+  resetTokenExpiry: Date,
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -190,8 +192,12 @@ app.post('/api/auth/login', async (req, res) => {
   }
   try {
     const user = await User.findOne({ username: username.toLowerCase() });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      return res.status(401).json({ ok: false, message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ ok: false, message: 'Username not found' });
+    }
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatch) {
+      return res.status(401).json({ ok: false, message: 'Incorrect password' });
     }
     const token = createToken(user);
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
@@ -202,7 +208,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ ok: false, message: 'Login failed' });
+    res.status(500).json({ ok: false, message: 'Login failed. Please try again.' });
   }
 });
 
@@ -220,6 +226,59 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Unable to load profile' });
+  }
+});
+
+// Forgot Password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ ok: false, message: 'Email required' });
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ ok: false, message: 'Email not found' });
+    }
+    const resetToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    
+    await User.findByIdAndUpdate(user._id, { resetToken, resetTokenExpiry });
+    
+    res.json({ ok: true, message: 'Password reset link sent to email', token: resetToken });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, message: 'Unable to process request' });
+  }
+});
+
+// Reset Password
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { resetToken, newPassword } = req.body;
+  if (!resetToken || !newPassword) {
+    return res.status(400).json({ ok: false, message: 'Reset token and new password required' });
+  }
+  try {
+    const user = await User.findOne({ 
+      resetToken,
+      resetTokenExpiry: { $gt: new Date() }
+    });
+    
+    if (!user) {
+      return res.status(400).json({ ok: false, message: 'Invalid or expired reset token' });
+    }
+    
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(user._id, { 
+      passwordHash,
+      resetToken: null,
+      resetTokenExpiry: null
+    });
+    
+    res.json({ ok: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, message: 'Unable to reset password' });
   }
 });
 

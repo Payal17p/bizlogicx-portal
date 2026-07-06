@@ -34,12 +34,29 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .submit-btn { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.3s; }
 .submit-btn:hover { background: #2563eb; }
 
-/* DASHBOARD */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; }
-.kpi-icon { font-size: 32px; color: #3b82f6; }
-.kpi-content h3 { margin: 0; font-size: 12px; color: #a0aec0; text-transform: uppercase; }
-.kpi-content p { margin: 5px 0 0; font-size: 24px; font-weight: 700; color: #1a2847; }
+/* AUTH MESSAGES */
+.subtitle { text-align: center; color: #a0aec0; margin-bottom: 20px; }
+.auth-message { padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; font-weight: 500; }
+.auth-message.error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.auth-message.success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+
+/* KPI CARDS WITH FINANCIAL STYLING */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+.kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; border-left: 4px solid #3b82f6; transition: transform 0.2s; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.kpi-card.financial.revenue { border-left-color: #10b981; background: #f0fdf4; }
+.kpi-card.financial.expense { border-left-color: #ef4444; background: #fef2f2; }
+.kpi-card.financial.profit { border-left-color: #10b981; background: #f0fdf4; }
+.kpi-card.financial.loss { border-left-color: #ef4444; background: #fef2f2; }
+.kpi-icon { font-size: 28px; color: #3b82f6; margin-bottom: 10px; }
+.kpi-card.financial.revenue .kpi-icon { color: #10b981; }
+.kpi-card.financial.expense .kpi-icon { color: #ef4444; }
+.kpi-card.financial.profit .kpi-icon { color: #10b981; }
+.kpi-card.financial.loss .kpi-icon { color: #ef4444; }
+.kpi-value { font-size: 24px; font-weight: 700; color: #1a2847; margin: 10px 0; }
+.kpi-card.financial.revenue .kpi-value { color: #10b981; }
+.kpi-card.financial.expense .kpi-value { color: #ef4444; }
+.kpi-label { font-size: 12px; color: #a0aec0; font-weight: 600; text-transform: uppercase; }
 
 .section-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
 .section-title { font-size: 16px; font-weight: 700; color: #1a2847; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; }
@@ -49,10 +66,14 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
 .table tr:hover { background: #f9fafb; }
 .table .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-.badge.export { background: #dbeafe; color: #1e40af; }
-.badge.import { background: #dcfce7; color: #166534; }
-.badge.air { background: #e0e7ff; color: #3730a3; }
-.badge.sea { background: #cffafe; color: #164e63; }
+.badge.badge-export { background: #dbeafe; color: #1e40af; }
+.badge.badge-import { background: #dcfce7; color: #166534; }
+.badge.badge-air { background: #e0e7ff; color: #3730a3; }
+.badge.badge-sea { background: #cffafe; color: #164e63; }
+
+/* PROFIT & LOSS CELLS */
+.profit-cell { color: #10b981 !important; font-weight: 700; background: #f0fdf4; padding: 8px 12px; border-radius: 6px; }
+.loss-cell { color: #ef4444 !important; font-weight: 700; background: #fef2f2; padding: 8px 12px; border-radius: 6px; }
 
 .btn { display: inline-block; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s; }
 .btn-primary { background: #3b82f6; color: white; }

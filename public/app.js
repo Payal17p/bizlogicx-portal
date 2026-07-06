@@ -1,10 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// BIZ LOGICX PORTAL - COMPLETE APPLICATION
+// BIZ LOGICX PORTAL - COMPLETE APPLICATION (v3.0)
 // ═══════════════════════════════════════════════════════════════════════════
 
 let currentUser = null;
 let currentTab = 'dashboard';
 let allShipments = [];
+let editingShipmentId = null;
 
 // ─────────────────────────────── INIT ───────────────────────────────
 
@@ -36,12 +37,16 @@ function showLoginScreen() {
           <i class="fas fa-cube"></i>
           <span>Biz LogicX</span>
         </div>
-        <h2>Shipment Management</h2>
+        <h2>Shipment Management Portal</h2>
+        <p class="subtitle">Professional Logistics Platform</p>
         
         <div class="tab-buttons">
           <button class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
           <button class="tab-btn" onclick="switchAuthTab('register')">Register</button>
+          <button class="tab-btn" onclick="switchAuthTab('forgot')">Forgot Password</button>
         </div>
+
+        <div id="authMessage" class="auth-message" style="display: none;"></div>
 
         <form id="loginForm" style="display: block;">
           <div class="form-group">
@@ -62,7 +67,7 @@ function showLoginScreen() {
           </div>
           <div class="form-group">
             <label>Email</label>
-            <input type="email" name="email">
+            <input type="email" name="email" required>
           </div>
           <div class="form-group">
             <label>Username</label>
@@ -72,7 +77,31 @@ function showLoginScreen() {
             <label>Password</label>
             <input type="password" name="password" required>
           </div>
+          <div class="form-group">
+            <label>Phone (Optional)</label>
+            <input type="tel" name="phone">
+          </div>
           <button type="submit" class="submit-btn">Create Account</button>
+        </form>
+
+        <form id="forgotForm" style="display: none;">
+          <div class="form-group">
+            <label>Enter Your Email</label>
+            <input type="email" name="email" required>
+          </div>
+          <button type="submit" class="submit-btn">Send Reset Link</button>
+          <div id="resetStatus" style="margin-top: 15px;"></div>
+          <div id="resetPasswordForm" style="display: none; margin-top: 15px;">
+            <div class="form-group">
+              <label>Reset Token</label>
+              <input type="text" id="resetToken" required>
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="newPassword" required>
+            </div>
+            <button type="button" onclick="submitResetPassword()" class="submit-btn">Reset Password</button>
+          </div>
         </form>
       </div>
     </div>
@@ -80,18 +109,29 @@ function showLoginScreen() {
 
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
   document.getElementById('registerForm').addEventListener('submit', handleRegister);
+  document.getElementById('forgotForm').addEventListener('submit', handleForgotPassword);
 }
 
 function switchAuthTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('form').forEach(f => f.style.display = 'none');
+  document.getElementById('authMessage').style.display = 'none';
   
   event.target.classList.add('active');
   if (tab === 'login') {
     document.getElementById('loginForm').style.display = 'block';
-  } else {
+  } else if (tab === 'register') {
     document.getElementById('registerForm').style.display = 'block';
+  } else {
+    document.getElementById('forgotForm').style.display = 'block';
   }
+}
+
+function showAuthMessage(message, type = 'error') {
+  const msgDiv = document.getElementById('authMessage');
+  msgDiv.textContent = message;
+  msgDiv.className = `auth-message ${type}`;
+  msgDiv.style.display = 'block';
 }
 
 async function handleLogin(e) {
@@ -107,14 +147,15 @@ async function handleLogin(e) {
       body: JSON.stringify(data)
     });
     
+    const result = await res.json();
     if (res.ok) {
-      currentUser = (await res.json()).user;
+      currentUser = result.user;
       showMainApp();
     } else {
-      alert('Invalid credentials');
+      showAuthMessage(result.message || 'Login failed', 'error');
     }
   } catch (error) {
-    alert('Login failed');
+    showAuthMessage('Login failed. Please try again.', 'error');
   }
 }
 
@@ -131,15 +172,87 @@ async function handleRegister(e) {
       body: JSON.stringify(data)
     });
     
+    const result = await res.json();
     if (res.ok) {
-      currentUser = (await res.json()).user;
+      currentUser = result.user;
       showMainApp();
     } else {
-      const err = await res.json();
-      alert(err.message || 'Registration failed');
+      showAuthMessage(result.message || 'Registration failed', 'error');
     }
   } catch (error) {
-    alert('Registration failed');
+    showAuthMessage('Registration failed. Please try again.', 'error');
+  }
+}
+
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  const email = e.target.email.value;
+  
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const result = await res.json();
+    if (res.ok) {
+      document.getElementById('resetStatus').innerHTML = `
+        <div class="success-msg" style="color: #10b981; padding: 10px; background: #f0fdf4; border-radius: 6px; margin-top: 10px;">
+        ✓ Reset token: ${result.token}
+        </div>
+      `;
+      document.getElementById('resetToken').value = result.token || '';
+      document.getElementById('resetPasswordForm').style.display = 'block';
+    } else {
+      document.getElementById('resetStatus').innerHTML = `
+        <div class="error-msg" style="color: #ef4444; padding: 10px; background: #fef2f2; border-radius: 6px; margin-top: 10px;">
+        ✗ ${result.message}
+        </div>
+      `;
+    }
+  } catch (error) {
+    document.getElementById('resetStatus').innerHTML = `
+      <div class="error-msg" style="color: #ef4444; padding: 10px; background: #fef2f2; border-radius: 6px; margin-top: 10px;">
+      ✗ Request failed
+      </div>
+    `;
+  }
+}
+
+async function submitResetPassword() {
+  const resetToken = document.getElementById('resetToken').value;
+  const newPassword = document.getElementById('newPassword').value;
+  
+  if (!resetToken || !newPassword) {
+    showAuthMessage('Token and password required', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword })
+    });
+    
+    const result = await res.json();
+    if (res.ok) {
+      showAuthMessage('Password reset successful! You can now login.', 'success');
+      setTimeout(() => switchAuthTab('login'), 2000);
+    } else {
+      document.getElementById('resetStatus').innerHTML = `
+        <div class="error-msg" style="color: #ef4444; padding: 10px; background: #fef2f2; border-radius: 6px; margin-top: 10px;">
+        ✗ ${result.message}
+        </div>
+      `;
+    }
+  } catch (error) {
+    document.getElementById('resetStatus').innerHTML = `
+      <div class="error-msg" style="color: #ef4444; padding: 10px; background: #fef2f2; border-radius: 6px; margin-top: 10px;">
+      ✗ Reset failed
+      </div>
+    `;
   }
 }
 
@@ -209,101 +322,88 @@ function switchTab(tab) {
 
 async function renderDashboard() {
   const content = document.getElementById('mainContent');
-  const stats = {
-    totalShipments: allShipments.length,
-    airFreight: allShipments.filter(s => s.transportMode === 'air').length,
-    oceanFreight: allShipments.filter(s => s.transportMode === 'sea').length,
-    exports: allShipments.filter(s => s.direction === 'export').length,
-    totalRevenue: allShipments.reduce((sum, s) => sum + (s.totalRevenue || 0), 0),
-    totalCost: allShipments.reduce((sum, s) => sum + (s.totalCost || 0), 0),
-    totalProfit: allShipments.reduce((sum, s) => sum + (s.profit || 0), 0)
-  };
+  
+  try {
+    const res = await fetch('/api/dashboard', { credentials: 'include' });
+    const { dashboard } = await res.json();
+    
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = `
+      <div class="dashboard">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
+            <div class="kpi-value">${dashboard.totalShipments}</div>
+            <div class="kpi-label">Total Shipments</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-plane"></i></div>
+            <div class="kpi-value">${dashboard.airFreight}</div>
+            <div class="kpi-label">Air Freight</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-ship"></i></div>
+            <div class="kpi-value">${dashboard.oceanFreight}</div>
+            <div class="kpi-label">Ocean Freight</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-globe"></i></div>
+            <div class="kpi-value">${dashboard.exports}</div>
+            <div class="kpi-label">Exports</div>
+          </div>
+          <div class="kpi-card financial revenue">
+            <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+            <div class="kpi-value">₹ ${dashboard.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div class="kpi-label">Total Revenue</div>
+          </div>
+          <div class="kpi-card financial expense">
+            <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+            <div class="kpi-value">₹ ${dashboard.totalCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div class="kpi-label">Total Expense</div>
+          </div>
+          <div class="kpi-card financial ${dashboard.totalProfit >= 0 ? 'profit' : 'loss'}">
+            <div class="kpi-icon"><i class="fas fa-${dashboard.totalProfit >= 0 ? 'smile' : 'frown'}"></i></div>
+            <div class="kpi-value">₹ ${dashboard.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div class="kpi-label">${dashboard.totalProfit >= 0 ? 'Total Profit' : 'Total Loss'}</div>
+          </div>
+        </div>
 
-  content.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
-        <div class="kpi-content">
-          <h3>Total Shipments</h3>
-          <p>${stats.totalShipments}</p>
+        <div class="recent-shipments">
+          <h3>Recent Shipments</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Shipment ID</th>
+                <th>Shipper</th>
+                <th>Consignee</th>
+                <th>Mode</th>
+                <th>Revenue</th>
+                <th>Expense</th>
+                <th>Profit/Loss</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dashboard.recentShipments.map(s => `
+                <tr>
+                  <td><strong>${s.shipmentId}</strong></td>
+                  <td>${s.shipperName || 'N/A'}</td>
+                  <td>${s.consignee || 'N/A'}</td>
+                  <td><span class="badge badge-${s.transportMode}">${s.transportMode.toUpperCase()}</span></td>
+                  <td>₹ ${(s.totalRevenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                  <td>₹ ${(s.totalCost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                  <td class="${(s.profit || 0) >= 0 ? 'profit-cell' : 'loss-cell'}">
+                    ₹ ${(s.profit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-plane"></i></div>
-        <div class="kpi-content">
-          <h3>Air Freight</h3>
-          <p>${stats.airFreight}</p>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-ship"></i></div>
-        <div class="kpi-content">
-          <h3>Ocean Freight</h3>
-          <p>${stats.oceanFreight}</p>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-arrow-right"></i></div>
-        <div class="kpi-content">
-          <h3>Exports</h3>
-          <p>${stats.exports}</p>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon" style="color: #10b981;"><i class="fas fa-chart-pie"></i></div>
-        <div class="kpi-content">
-          <h3>Total Revenue</h3>
-          <p>₹${stats.totalRevenue.toLocaleString('en-IN')}</p>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon" style="color: #ef4444;"><i class="fas fa-dollar-sign"></i></div>
-        <div class="kpi-content">
-          <h3>Total Cost</h3>
-          <p>₹${stats.totalCost.toLocaleString('en-IN')}</p>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon" style="color: #f59e0b;"><i class="fas fa-chart-line"></i></div>
-        <div class="kpi-content">
-          <h3>Total Profit</h3>
-          <p>₹${stats.totalProfit.toLocaleString('en-IN')}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title"><i class="fas fa-history"></i> Recent Shipments</div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Shipment ID</th>
-            <th>Shipper</th>
-            <th>Consignee</th>
-            <th>Date</th>
-            <th>Mode</th>
-            <th>Revenue</th>
-            <th>Profit</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${allShipments.slice(0, 10).map(s => `
-            <tr>
-              <td><strong>${s.shipmentId}</strong></td>
-              <td>${s.shipperName || '-'}</td>
-              <td>${s.consignee || '-'}</td>
-              <td>${s.bookingDate || '-'}</td>
-              <td><span class="badge ${s.transportMode}">${s.transportMode.toUpperCase()}</span></td>
-              <td>₹${(s.totalRevenue || 0).toLocaleString('en-IN')}</td>
-              <td style="color: ${(s.profit || 0) >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">₹${(s.profit || 0).toLocaleString('en-IN')}</td>
-              <td><button class="btn btn-sm btn-secondary" onclick="editShipment('${s._id}')">View</button></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+    `;
+  } catch (error) {
+    document.getElementById('mainContent').innerHTML = '<p class="error">Unable to load dashboard</p>';
+  }
 }
 
 // ─────────────────────────────── SHIPMENT FORM ───────────────────────────────
@@ -711,8 +811,8 @@ function renderLogs() {
             <th>Date</th>
             <th>Mode</th>
             <th>Revenue</th>
-            <th>Cost</th>
-            <th>Profit</th>
+            <th>Expense</th>
+            <th>Profit/Loss</th>
             <th>Margin %</th>
             <th>Actions</th>
           </tr>
@@ -724,15 +824,16 @@ function renderLogs() {
               <td>${s.shipperName || '-'}</td>
               <td>${s.consignee || '-'}</td>
               <td>${s.bookingDate || '-'}</td>
-              <td><span class="badge ${s.transportMode}">${s.transportMode?.toUpperCase()}</span></td>
+              <td><span class="badge badge-${s.transportMode}">${s.transportMode?.toUpperCase()}</span></td>
               <td>₹${(s.totalRevenue || 0).toLocaleString('en-IN')}</td>
               <td>₹${(s.totalCost || 0).toLocaleString('en-IN')}</td>
               <td style="color: ${(s.profit || 0) >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">₹${(s.profit || 0).toLocaleString('en-IN')}</td>
               <td>${(s.marginPercent || 0).toFixed(2)}%</td>
               <td>
-                <div class="actions">
-                  <button class="btn btn-sm btn-secondary" onclick="editShipment('${s._id}')">Edit</button>
-                  <button class="btn btn-sm btn-primary" onclick="downloadShipment('${s._id}')">Download</button>
+                <div class="actions" style="display: flex; gap: 5px;">
+                  <button class="btn btn-sm btn-secondary" onclick="editShipment('${s._id}')">✏ Edit</button>
+                  <button class="btn btn-sm btn-primary" onclick="downloadShipment('${s._id}')">⬇ Download</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s._id}')">🗑 Delete</button>
                 </div>
               </td>
             </tr>
@@ -741,6 +842,24 @@ function renderLogs() {
       </table>
     </div>
   `;
+}
+
+async function deleteShipment(shipmentId) {
+  if (confirm('Are you sure you want to delete this shipment?')) {
+    try {
+      const res = await fetch(`/api/shipments/${shipmentId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        await loadShipments();
+        renderLogs();
+        alert('Shipment deleted successfully');
+      }
+    } catch (error) {
+      alert('Error deleting shipment');
+    }
+  }
 }
 
 async function editShipment(id) {
