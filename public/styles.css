@@ -1,0 +1,36 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f4f7fb;
+  color: #11213a;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: linear-gradient(135deg, #eef4ff, #f8fafc); color: #11213a; }
+.page-shell { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.hero { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 24px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.2rem; color: #5572a4; font-size: 0.8rem; font-weight: 700; margin: 0 0 4px; }
+h1, h2, h3 { margin: 0; }
+.subtext { max-width: 620px; color: #5b6c84; }
+.card { background: white; border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(17, 33, 58, 0.08); }
+.auth-card { min-width: 320px; }
+.auth-tabs { display: flex; flex-direction: column; gap: 12px; }
+.stacked-form, .grid-form { display: grid; gap: 12px; }
+.grid-form { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; color: #31445d; }
+input, select, textarea, button { font: inherit; border-radius: 10px; border: 1px solid #d7e2f0; padding: 10px 12px; }
+textarea { resize: vertical; }
+.primary-btn, .secondary-btn, .ghost-btn { border: none; cursor: pointer; transition: transform 0.2s ease, opacity 0.2s ease; }
+.primary-btn { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white; }
+.secondary-btn { background: #eef4ff; color: #1d4ed8; }
+.ghost-btn { background: #f2f5fb; color: #43556f; }
+.primary-btn:hover, .secondary-btn:hover, .ghost-btn:hover { transform: translateY(-1px); }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.full-span { grid-column: 1 / -1; }
+.actions { display: flex; justify-content: flex-end; }
+.package-row { display: grid; grid-template-columns: repeat(6, minmax(90px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.shipment-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e9eef5; }
+.badge { background: #eef4ff; color: #1d4ed8; padding: 6px 10px; border-radius: 999px; font-size: 0.9rem; }
+.user-pill { display: flex; flex-direction: column; gap: 2px; }
+.hidden { display: none !important; }
+@media (max-width: 800px) { .hero { flex-direction: column; align-items: flex-start; } .grid-form { grid-template-columns: 1fr; } .package-row { grid-template-columns: 1fr; } }
