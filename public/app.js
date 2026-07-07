@@ -669,24 +669,26 @@ function addPurchaseItem() {
   container.appendChild(row);
 }
 
+function getRowValue(row, selector) {
+  return row.querySelector(selector)?.value || '';
+}
+
 function updateSummary() {
   const form = document.getElementById('shipmentForm');
   let totalRevenue = 0;
   let totalCost = 0;
 
   // Calculate revenue
-  const revRows = document.querySelectorAll('#revenueContainer .package-item');
-  revRows.forEach((row, idx) => {
-    const qty = parseFloat(row.querySelector(`[name="rev_qty_${idx}"]`).value) || 0;
-    const rate = parseFloat(row.querySelector(`[name="rev_rate_${idx}"]`).value) || 0;
+  document.querySelectorAll('#revenueContainer .package-item').forEach((row) => {
+    const qty = parseFloat(getRowValue(row, 'input[name^="rev_qty_"]')) || 0;
+    const rate = parseFloat(getRowValue(row, 'input[name^="rev_rate_"]')) || 0;
     totalRevenue += qty * rate;
   });
 
   // Calculate costs
-  const purchRows = document.querySelectorAll('#purchaseContainer .package-item');
-  purchRows.forEach((row, idx) => {
-    const qty = parseFloat(row.querySelector(`[name="purch_qty_${idx}"]`).value) || 0;
-    const rate = parseFloat(row.querySelector(`[name="purch_rate_${idx}"]`).value) || 0;
+  document.querySelectorAll('#purchaseContainer .package-item').forEach((row) => {
+    const qty = parseFloat(getRowValue(row, 'input[name^="purch_qty_"]')) || 0;
+    const rate = parseFloat(getRowValue(row, 'input[name^="purch_rate_"]')) || 0;
     totalCost += qty * rate;
   });
 
@@ -706,33 +708,33 @@ async function saveShipment(e) {
 
   // Collect packages
   const packages = [];
-  document.querySelectorAll('#packagesContainer .package-item').forEach((row, idx) => {
-    const type = row.querySelector(`[name="pkg_type_${idx}"]`).value;
+  document.querySelectorAll('#packagesContainer .package-item').forEach((row) => {
+    const type = getRowValue(row, 'input[name^="pkg_type_"]');
     if (type) {
       packages.push({
         type,
-        weight: parseFloat(row.querySelector(`[name="pkg_weight_${idx}"]`).value) || 0,
-        length: parseFloat(row.querySelector(`[name="pkg_length_${idx}"]`).value) || 0,
-        width: parseFloat(row.querySelector(`[name="pkg_width_${idx}"]`).value) || 0,
-        height: parseFloat(row.querySelector(`[name="pkg_height_${idx}"]`).value) || 0,
-        description: row.querySelector(`[name="pkg_desc_${idx}"]`).value
+        weight: parseFloat(getRowValue(row, 'input[name^="pkg_weight_"]')) || 0,
+        length: parseFloat(getRowValue(row, 'input[name^="pkg_length_"]')) || 0,
+        width: parseFloat(getRowValue(row, 'input[name^="pkg_width_"]')) || 0,
+        height: parseFloat(getRowValue(row, 'input[name^="pkg_height_"]')) || 0,
+        description: getRowValue(row, 'input[name^="pkg_desc_"]')
       });
     }
   });
 
   // Collect revenue
   const revenueHeads = [];
-  document.querySelectorAll('#revenueContainer .package-item').forEach((row, idx) => {
-    const category = row.querySelector(`[name="rev_cat_${idx}"]`).value;
+  document.querySelectorAll('#revenueContainer .package-item').forEach((row) => {
+    const category = getRowValue(row, 'input[name^="rev_cat_"]');
     if (category) {
-      const qty = parseFloat(row.querySelector(`[name="rev_qty_${idx}"]`).value) || 0;
-      const rate = parseFloat(row.querySelector(`[name="rev_rate_${idx}"]`).value) || 0;
+      const qty = parseFloat(getRowValue(row, 'input[name^="rev_qty_"]')) || 0;
+      const rate = parseFloat(getRowValue(row, 'input[name^="rev_rate_"]')) || 0;
       revenueHeads.push({
         category,
-        head: row.querySelector(`[name="rev_head_${idx}"]`).value,
+        head: getRowValue(row, 'input[name^="rev_head_"]'),
         quantity: qty,
         rate,
-        currency: row.querySelector(`[name="rev_curr_${idx}"]`).value,
+        currency: getRowValue(row, 'select[name^="rev_curr_"]'),
         amount: qty * rate
       });
     }
@@ -740,17 +742,17 @@ async function saveShipment(e) {
 
   // Collect purchases
   const purchaseItems = [];
-  document.querySelectorAll('#purchaseContainer .package-item').forEach((row, idx) => {
-    const vendor = row.querySelector(`[name="purch_vendor_${idx}"]`).value;
+  document.querySelectorAll('#purchaseContainer .package-item').forEach((row) => {
+    const vendor = getRowValue(row, 'input[name^="purch_vendor_"]');
     if (vendor) {
-      const qty = parseFloat(row.querySelector(`[name="purch_qty_${idx}"]`).value) || 0;
-      const rate = parseFloat(row.querySelector(`[name="purch_rate_${idx}"]`).value) || 0;
+      const qty = parseFloat(getRowValue(row, 'input[name^="purch_qty_"]')) || 0;
+      const rate = parseFloat(getRowValue(row, 'input[name^="purch_rate_"]')) || 0;
       purchaseItems.push({
         vendor,
-        description: row.querySelector(`[name="purch_desc_${idx}"]`).value,
+        description: getRowValue(row, 'input[name^="purch_desc_"]'),
         quantity: qty,
         rate,
-        currency: row.querySelector(`[name="purch_curr_${idx}"]`).value,
+        currency: getRowValue(row, 'select[name^="purch_curr_"]'),
         amount: qty * rate
       });
     }

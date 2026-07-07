@@ -130,6 +130,12 @@ const cookieOptions = {
   maxAge: 30 * 24 * 60 * 60 * 1000
 };
 
+const clearCookieOptions = {
+  httpOnly: true,
+  sameSite: cookieOptions.sameSite,
+  secure: cookieOptions.secure
+};
+
 function normalizeText(value) {
   return String(value || '').trim();
 }
@@ -148,6 +154,32 @@ function isValidUsername(username) {
 
 function isStrongEnoughPassword(password) {
   return typeof password === 'string' && password.length >= 6;
+}
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function calculateShipmentTotals(revenueHeads = [], purchaseItems = []) {
+  const totalRevenue = revenueHeads.reduce((sum, item) => sum + toNumber(item.amount), 0);
+  const totalCost = purchaseItems.reduce((sum, item) => sum + toNumber(item.amount), 0);
+  const profit = totalRevenue - totalCost;
+  const marginPercent = totalRevenue > 0 ? Number(((profit / totalRevenue) * 100).toFixed(2)) : 0;
+
+  return { totalRevenue, totalCost, profit, marginPercent };
+}
+
+function escapeCsv(value) {
+  const text = String(value ?? '');
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function csvRow(values) {
+  return values.map(escapeCsv).join(',') + '\n';
 }
 
 // ─────────────────────── MIDDLEWARE ───────────────────────
@@ -261,7 +293,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token', cookieOptions);
+  res.clearCookie('token', clearCookieOptions);
   res.json({ ok: true });
 });
 
@@ -269,7 +301,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).lean();
     if (!user) {
-      res.clearCookie('token', cookieOptions);
+      res.clearCookie('token', clearCookieOptions);
       return res.status(401).json({ ok: false, message: 'User not found' });
     }
     res.json({
@@ -283,7 +315,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 
 // Forgot Password
 app.post('/api/auth/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const email = normalizeEmail(req.body.email);
   if (!email) {
     return res.status(400).json({ ok: false, message: 'Email required' });
   }
@@ -297,7 +329,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     
     await User.findByIdAndUpdate(user._id, { resetToken, resetTokenExpiry });
     
-    res.json({ ok: true, message: 'Password reset link sent to email', token: resetToken });
+    res.json({
+      ok: true,
+      message: isProduction ? 'If this email exists, a reset link will be sent.' : 'Password reset token generated',
+      token: isProduction ? undefined : resetToken
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, message: 'Unable to process request' });
@@ -309,6 +345,9 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const { resetToken, newPassword } = req.body;
   if (!resetToken || !newPassword) {
     return res.status(400).json({ ok: false, message: 'Reset token and new password required' });
+  }
+  if (!isStrongEnoughPassword(newPassword)) {
+    return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters' });
   }
   try {
     const user = await User.findOne({ 
@@ -337,7 +376,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // Dashboard Route
 app.get('/api/dashboard', authMiddleware, async (req, res) => {
   try {
-    const shipments = await Shipment.find({ userId: req.user.id }).lean();
+    const shipments = await Shipment.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
     
     const totalShipments = shipments.length;
     const airFreight = shipments.filter(s => s.transportMode === 'air').length;
@@ -358,7 +397,7 @@ app.get('/api/dashboard', authMiddleware, async (req, res) => {
         totalRevenue,
         totalCost,
         totalProfit,
-        recentShipments: shipments.slice(0, 10).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        recentShipments: shipments.slice(0, 10)
       }
     });
   } catch (error) {
@@ -381,31 +420,15 @@ app.post('/api/shipments', authMiddleware, async (req, res) => {
   try {
     const shipmentId = 'BLX-' + Date.now().toString(36).toUpperCase();
     
-    // Calculate totals
     const revenueHeads = req.body.revenueHeads || [];
     const purchaseItems = req.body.purchaseItems || [];
-    
-    let totalRevenue = 0;
-    revenueHeads.forEach(item => {
-      totalRevenue += item.amount || 0;
-    });
-    
-    let totalCost = 0;
-    purchaseItems.forEach(item => {
-      totalCost += item.amount || 0;
-    });
-    
-    const profit = totalRevenue - totalCost;
-    const marginPercent = totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(2) : 0;
+    const totals = calculateShipmentTotals(revenueHeads, purchaseItems);
     
     const shipment = await Shipment.create({
       userId: req.user.id,
       shipmentId,
       ...req.body,
-      totalRevenue,
-      totalCost,
-      profit,
-      marginPercent
+      ...totals
     });
     
     res.status(201).json({ ok: true, shipment });
@@ -434,28 +457,13 @@ app.put('/api/shipments/:id', authMiddleware, async (req, res) => {
   try {
     const revenueHeads = req.body.revenueHeads || [];
     const purchaseItems = req.body.purchaseItems || [];
-    
-    let totalRevenue = 0;
-    revenueHeads.forEach(item => {
-      totalRevenue += item.amount || 0;
-    });
-    
-    let totalCost = 0;
-    purchaseItems.forEach(item => {
-      totalCost += item.amount || 0;
-    });
-    
-    const profit = totalRevenue - totalCost;
-    const marginPercent = totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(2) : 0;
+    const totals = calculateShipmentTotals(revenueHeads, purchaseItems);
     
     const shipment = await Shipment.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
       {
         ...req.body,
-        totalRevenue,
-        totalCost,
-        profit,
-        marginPercent,
+        ...totals,
         updatedAt: new Date()
       },
       { new: true }
@@ -499,29 +507,30 @@ app.get('/api/shipments/:id/download', authMiddleware, async (req, res) => {
     }
     
     let csv = 'Biz LogicX - Shipment Details\n\n';
-    csv += `Shipment ID,${shipment.shipmentId}\n`;
-    csv += `Shipper,${shipment.shipperName}\n`;
-    csv += `Consignee,${shipment.consignee}\n`;
-    csv += `Booking Date,${shipment.bookingDate}\n`;
-    csv += `Transport Mode,${shipment.transportMode}\n`;
-    csv += `Carrier,${shipment.carrier}\n\n`;
+    csv += csvRow(['Shipment ID', shipment.shipmentId]);
+    csv += csvRow(['Shipper', shipment.shipperName]);
+    csv += csvRow(['Consignee', shipment.consignee]);
+    csv += csvRow(['Booking Date', shipment.bookingDate]);
+    csv += csvRow(['Transport Mode', shipment.transportMode]);
+    csv += csvRow(['Carrier', shipment.carrier]);
+    csv += '\n';
     
     csv += 'Revenue Details\n';
     csv += 'Category,Head,Quantity,Rate,Amount\n';
     (shipment.revenueHeads || []).forEach(item => {
-      csv += `${item.category},${item.head},${item.quantity},${item.rate},${item.amount}\n`;
+      csv += csvRow([item.category, item.head, item.quantity, item.rate, item.amount]);
     });
-    csv += `Total Revenue,,,,${shipment.totalRevenue}\n\n`;
+    csv += csvRow(['Total Revenue', '', '', '', shipment.totalRevenue]) + '\n';
     
     csv += 'Cost Details\n';
     csv += 'Vendor,Description,Quantity,Rate,Amount\n';
     (shipment.purchaseItems || []).forEach(item => {
-      csv += `${item.vendor},${item.description},${item.quantity},${item.rate},${item.amount}\n`;
+      csv += csvRow([item.vendor, item.description, item.quantity, item.rate, item.amount]);
     });
-    csv += `Total Cost,,,,${shipment.totalCost}\n\n`;
+    csv += csvRow(['Total Cost', '', '', '', shipment.totalCost]) + '\n';
     
-    csv += `Profit,${shipment.profit}\n`;
-    csv += `Margin %,${shipment.marginPercent}%\n`;
+    csv += csvRow(['Profit', shipment.profit]);
+    csv += csvRow(['Margin %', `${shipment.marginPercent}%`]);
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=shipment-${shipment.shipmentId}.csv`);
@@ -550,7 +559,8 @@ async function start() {
     }
 
     await mongoose.connect(mongoUri, {
-      dbName: process.env.MONGODB_DB || undefined
+      dbName: process.env.MONGODB_DB || undefined,
+      serverSelectionTimeoutMS: 10000
     });
     console.log('✓ Connected to MongoDB');
 
