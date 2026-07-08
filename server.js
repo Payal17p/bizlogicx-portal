@@ -485,8 +485,8 @@ app.put('/api/shipments/:id', authMiddleware, async (req, res) => {
       },
       { new: true }
     );
-    
-    if (!shipment) {
+          ok: true,
+          user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email, phone: user.phone }
       return res.status(404).json({ ok: false, message: 'Shipment not found' });
     }
     res.json({ ok: true, shipment });

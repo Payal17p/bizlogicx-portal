@@ -12,9 +12,14 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .header { background: white; padding: 20px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
 .header h1 { margin: 0; font-size: 24px; }
-.user-menu { display: flex; align-items: center; gap: 15px; }
-.user-pill { background: #f0f4f8; padding: 8px 16px; border-radius: 20px; font-size: 14px; }
-.logout-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.3s; }
+.header-right { display: flex; gap: 20px; align-items: center; }
+.top-info { display: flex; gap: 12px; align-items: center; }
+.current-date { background: #f1f5f9; padding: 8px 12px; border-radius: 20px; font-weight: 600; color: #0f172a; }
+.assistant-btn { background: #2563eb; color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.18); }
+.assistant-btn:hover { background: #1e40af; }
+.user-menu { display: flex; align-items: center; gap: 12px; }
+.user-pill { background: white; padding: 8px 14px; border-radius: 20px; font-size: 14px; border: 1px solid #e6eefc; color: #0b1220; }
+.logout-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: background 0.3s; }
 .logout-btn:hover { background: #dc2626; }
 
 .content { flex: 1; overflow-y: auto; padding: 30px; }

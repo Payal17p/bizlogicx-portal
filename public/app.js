@@ -314,10 +314,16 @@ function showMainApp() {
       <div class="main-content">
         <header class="header">
           <h1 id="pageTitle">Dashboard</h1>
-          <div class="user-menu">
-            <span class="user-pill">${currentUser.fullName}</span>
-            <button class="logout-btn" onclick="logout()">Logout</button>
-          </div>
+              <div class="header-right">
+                <div class="top-info">
+                  <div class="current-date">${new Date().toLocaleDateString()}</div>
+                  <button class="assistant-btn">AI Assistant</button>
+                </div>
+                <div class="user-menu">
+                  <button class="user-pill">${currentUser.username}</button>
+                  <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+              </div>
         </header>
 
         <div class="content" id="mainContent"></div>
