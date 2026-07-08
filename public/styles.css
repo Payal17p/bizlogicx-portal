@@ -157,6 +157,15 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .package-item input, .package-item select { padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; }
 .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
+/* Package table styles */
+.package-table-wrap { background: #fff; border-radius: 8px; padding: 12px; border: 1px solid #eef2f7; }
+.package-note { padding: 12px; background: #eef6ff; border-radius: 6px; color: #134e8b; margin-bottom: 8px; }
+.package-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.package-table th { text-align: left; padding: 12px; color:#64748b; font-weight:700; font-size:13px; }
+.package-table td { padding: 8px; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+.package-table input, .package-table select { width:100%; padding:8px; border:1px solid #e6eefc; border-radius:6px; }
+.pkg-dim, .pkg-bill { font-weight:700; color:#0b1220; }
+
 .revenue-summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-top: 20px; }
 .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: 600; }
 .summary-row .label { opacity: 0.9; }

@@ -654,9 +654,40 @@ function renderShipmentForm() {
 
       <!-- PACKAGES -->
       <div class="form-section">
-        <div class="form-section-title"><i class="fas fa-cubes"></i> Packages</div>
-        <div class="packages-container" id="packagesContainer"></div>
-        <button type="button" class="add-btn" onclick="addPackage()"><i class="fas fa-plus"></i> Add Package</button>
+        <div class="form-section-title"><i class="fas fa-cubes"></i> Dimension & Package Configuration</div>
+
+        <div class="package-table-wrap">
+          <div class="package-note">Express Carrier DIM Weight Applied (UPS / DHL / FedEx) — DIM Wt (kg) = (L × W × H in cm) ÷ 5000 | Billable Wt = max(Gross Wt, DIM Wt)</div>
+          <table class="package-table" id="packageTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Goods Description</th>
+                <th>HS / HTS Code</th>
+                <th>No. of Pkg</th>
+                <th>L</th>
+                <th>W</th>
+                <th>H</th>
+                <th>Unit</th>
+                <th>Gross Wt (kg)</th>
+                <th>DIM Wt (kg)</th>
+                <th>Billable Wt (kg)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="packageTableBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="8" style="text-align:right;font-weight:700;">Totals:</td>
+                <td id="pkgTotalGross">0.00 kg</td>
+                <td id="pkgTotalDim">0.00 kg</td>
+                <td id="pkgTotalBillable">0.00 kg</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+          <div style="margin-top:12px; display:flex; gap:10px;"><button type="button" class="add-btn" onclick="addPackageRow()">+ Add Package</button></div>
+        </div>
       </div>
 
       <!-- REVENUE HEADS -->
@@ -709,7 +740,11 @@ function renderShipmentForm() {
   `;
 
   // Initialize form
+  // initialize package table
   addPackage();
+  // remove any simple package items and replace with table-based row
+  document.getElementById('packagesContainer')?.remove();
+  addPackageRow();
   addRevenue();
   addPurchaseItem();
 
@@ -736,20 +771,70 @@ function renderShipmentForm() {
 }
 
 function addPackage() {
-  const container = document.getElementById('packagesContainer');
-  const idx = container.children.length;
-  const row = document.createElement('div');
-  row.className = 'package-item';
-  row.innerHTML = `
-    <input type="text" placeholder="Type (Box/Pallet)" name="pkg_type_${idx}">
-    <input type="number" placeholder="Weight (kg)" name="pkg_weight_${idx}" step="0.01">
-    <input type="number" placeholder="Length" name="pkg_length_${idx}" step="0.01">
-    <input type="number" placeholder="Width" name="pkg_width_${idx}" step="0.01">
-    <input type="number" placeholder="Height" name="pkg_height_${idx}" step="0.01">
-    <input type="text" placeholder="Description" name="pkg_desc_${idx}">
-    <button type="button" class="btn-delete" onclick="this.parentElement.remove()">Delete</button>
+  // legacy: keep no-op for compatibility
+}
+
+function addPackageRow() {
+  const tbody = document.getElementById('packageTableBody');
+  const idx = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${idx}</td>
+    <td><input type="text" name="pkg_desc_${idx}" placeholder="Description..."></td>
+    <td><input type="text" name="pkg_hs_${idx}" placeholder="HS Code"></td>
+    <td><input type="number" name="pkg_qty_${idx}" value="1" min="1" step="1"></td>
+    <td><input type="number" name="pkg_l_${idx}" value="0" step="0.01"></td>
+    <td><input type="number" name="pkg_w_${idx}" value="0" step="0.01"></td>
+    <td><input type="number" name="pkg_hh_${idx}" value="0" step="0.01"></td>
+    <td>
+      <select name="pkg_unit_${idx}">
+        <option value="inches">Inches</option>
+        <option value="cm">cm</option>
+      </select>
+    </td>
+    <td><input type="number" name="pkg_gross_${idx}" value="0" step="0.01"></td>
+    <td class="pkg-dim">0.00</td>
+    <td class="pkg-bill">0.00</td>
+    <td><button type="button" class="btn-delete" onclick="this.closest('tr').remove(); updatePackageTotals();">Delete</button></td>
   `;
-  container.appendChild(row);
+  tbody.appendChild(tr);
+
+  // wire inputs
+  tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', updatePackageTotals));
+  updatePackageTotals();
+}
+
+function updatePackageTotals() {
+  const rows = Array.from(document.querySelectorAll('#packageTableBody tr'));
+  let totalGross = 0, totalDim = 0, totalBill = 0;
+  rows.forEach(r => {
+    const qty = parseFloat(r.querySelector('input[name^="pkg_qty_"]').value) || 0;
+    const L = parseFloat(r.querySelector('input[name^="pkg_l_"]').value) || 0;
+    const W = parseFloat(r.querySelector('input[name^="pkg_w_"]').value) || 0;
+    const H = parseFloat(r.querySelector('input[name^="pkg_hh_"]').value) || 0;
+    const unit = r.querySelector('select[name^="pkg_unit_"]').value;
+    const gross = parseFloat(r.querySelector('input[name^="pkg_gross_"]').value) || 0;
+
+    // convert to cm
+    let Lcm = L, Wcm = W, Hcm = H;
+    if (unit === 'inches') { Lcm = L * 2.54; Wcm = W * 2.54; Hcm = H * 2.54; }
+
+    const dimPerPkg = (Lcm * Wcm * Hcm) / 5000;
+    const dimTotal = dimPerPkg * qty;
+    const grossTotal = gross * qty;
+    const bill = Math.max(grossTotal, dimTotal);
+
+    r.querySelector('.pkg-dim').textContent = dimTotal.toFixed(2);
+    r.querySelector('.pkg-bill').textContent = bill.toFixed(2);
+
+    totalGross += grossTotal;
+    totalDim += dimTotal;
+    totalBill += bill;
+  });
+
+  document.getElementById('pkgTotalGross').textContent = `${totalGross.toFixed(2)} kg`;
+  document.getElementById('pkgTotalDim').textContent = `${totalDim.toFixed(2)} kg`;
+  document.getElementById('pkgTotalBillable').textContent = `${totalBill.toFixed(2)} kg`;
 }
 
 function addRevenue() {
