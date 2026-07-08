@@ -317,7 +317,7 @@ function showMainApp() {
               <div class="header-right">
                 <div class="top-info">
                   <div class="current-date">${new Date().toLocaleDateString()}</div>
-                  <button class="assistant-btn">AI Assistant</button>
+                  <button class="assistant-btn" onclick="openAssistant()">AI Assistant</button>
                 </div>
                 <div class="user-menu">
                   <button class="user-pill">${currentUser.username}</button>
@@ -333,6 +333,61 @@ function showMainApp() {
 
   loadShipments();
   switchTab('dashboard');
+}
+
+// ─────────────────────────────── AI ASSISTANT ───────────────────────────────
+function openAssistant() {
+  // ensure modal exists
+  if (!document.getElementById('assistantModal')) {
+    const modal = document.createElement('div');
+    modal.id = 'assistantModal';
+    modal.className = 'assistant-modal';
+    modal.innerHTML = `
+      <div class="assistant-dialog">
+        <button class="assistant-close" onclick="closeAssistant()">✕</button>
+        <div class="assistant-body">
+          <div id="assistantGreeting" class="assistant-greeting">Hello — I am your AI Assistant.</div>
+          <div id="assistantQuestion" class="assistant-question">What is my name?</div>
+          <input id="assistantNameInput" class="assistant-input" placeholder="Type your name here" />
+          <div class="assistant-actions">
+            <button class="btn btn-primary" onclick="saveAssistantName()">Save</button>
+            <button class="btn btn-secondary" onclick="closeAssistant()">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const stored = localStorage.getItem('blx_assistant_name');
+  if (stored) {
+    document.getElementById('assistantGreeting').textContent = `Hello, ${stored}! How can I help?`;
+    document.getElementById('assistantQuestion').style.display = 'none';
+    document.getElementById('assistantNameInput').style.display = 'none';
+    document.querySelector('#assistantModal .assistant-actions .btn-secondary').textContent = 'Close';
+  } else {
+    document.getElementById('assistantGreeting').textContent = 'Hello — I am your AI Assistant.';
+    document.getElementById('assistantQuestion').style.display = 'block';
+    document.getElementById('assistantNameInput').style.display = 'block';
+    document.getElementById('assistantNameInput').value = '';
+    document.querySelector('#assistantModal .assistant-actions .btn-secondary').textContent = 'Close';
+  }
+
+  document.getElementById('assistantModal').classList.add('open');
+}
+
+function closeAssistant() {
+  const m = document.getElementById('assistantModal');
+  if (m) m.classList.remove('open');
+}
+
+function saveAssistantName() {
+  const val = document.getElementById('assistantNameInput').value.trim();
+  if (!val) return alert('Please enter a name');
+  localStorage.setItem('blx_assistant_name', val);
+  document.getElementById('assistantGreeting').textContent = `Hello, ${val}! How can I help?`;
+  document.getElementById('assistantQuestion').style.display = 'none';
+  document.getElementById('assistantNameInput').style.display = 'none';
 }
 
 function switchTab(tab, navItem) {

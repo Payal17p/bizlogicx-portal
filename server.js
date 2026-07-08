@@ -293,7 +293,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie('token', token, cookieOptions);
     res.json({
       ok: true,
-      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email },
+      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email, phone: user.phone },
       token
     });
   } catch (error) {
@@ -485,8 +485,7 @@ app.put('/api/shipments/:id', authMiddleware, async (req, res) => {
       },
       { new: true }
     );
-          ok: true,
-          user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email, phone: user.phone }
+    if (!shipment) {
       return res.status(404).json({ ok: false, message: 'Shipment not found' });
     }
     res.json({ ok: true, shipment });
