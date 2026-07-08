@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 let currentUser = null;
-let currentTab = 'dashboard';
+let currentTab = window.initialPage || 'dashboard';
 let allShipments = [];
 let editingShipmentId = null;
 
