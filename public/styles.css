@@ -97,6 +97,32 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .section-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
 .section-title { font-size: 16px; font-weight: 700; color: #1a2847; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; }
 
+/* Shipment form specific styles to match screenshots */
+.shipment-form { max-width: 1100px; margin: 0 auto; }
+.booking-card { background: white; border-radius: 12px; padding: 18px; border: 2px solid #e6f0ff; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+.booking-label { display:flex; gap:12px; align-items:center; }
+.booking-icon { width:48px; height:48px; background:#eef6ff; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#2563eb; font-weight:800; }
+.booking-actions { display:flex; gap:10px; align-items:center; }
+.origin-pill { background:#fff7ed; border:1px solid #fde3c6; padding:10px 14px; border-radius:10px; color:#cb6b00; font-weight:700; display:inline-flex; align-items:center; gap:8px; }
+
+.transport-method { display:flex; gap:12px; margin-top:12px; }
+.transport-tile { flex:1; background:#f8fafc; border-radius:12px; padding:22px; text-align:center; cursor:pointer; position:relative; border:1px solid transparent; }
+.transport-tile.active { background: linear-gradient(180deg,#2563eb 0%,#1e40af 100%); color:white; }
+.transport-tile .icon { width:52px; height:52px; border-radius:10px; background:#eef2ff; display:inline-flex; align-items:center; justify-content:center; margin:0 auto 10px; }
+.transport-tile.active .icon { background: rgba(255,255,255,0.18); }
+.transport-tile .title { font-weight:800; margin-bottom:6px; }
+.transport-tile .subtitle { font-size:13px; color:#64748b; }
+
+.form-section { background: white; padding:18px; border-radius:12px; border:1px solid #f1f5f9; margin-bottom:16px; }
+.form-row { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+.form-row .form-group { margin-bottom:0; }
+.form-group label { font-weight:700; color:#0f172a; margin-bottom:8px; display:block; }
+
+@media (max-width: 1000px) {
+  .form-row { grid-template-columns: 1fr; }
+  .transport-method { flex-direction:column; }
+}
+
 .table { width: 100%; border-collapse: collapse; }
 .table th { background: #f0f4f8; padding: 12px; text-align: left; font-weight: 600; color: #1a2847; font-size: 12px; }
 .table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
