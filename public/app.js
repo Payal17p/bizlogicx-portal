@@ -529,6 +529,18 @@ function renderShipmentForm() {
               <option value="air">Air</option>
               <option value="sea">Sea</option>
             </select>
+            <div class="transport-method" style="margin-top:12px;">
+              <div class="transport-tile" data-mode="air">
+                <div class="icon"><i class="fas fa-plane"></i></div>
+                <div class="title">Air Freight</div>
+                <div class="subtitle">3-7 Days · Premium Express</div>
+              </div>
+              <div class="transport-tile" data-mode="sea">
+                <div class="icon"><i class="fas fa-ship"></i></div>
+                <div class="title">Ocean Freight</div>
+                <div class="subtitle">15-40 Days · Economy</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -703,6 +715,24 @@ function renderShipmentForm() {
 
   document.getElementById('shipmentForm').addEventListener('submit', saveShipment);
   document.getElementById('shipmentForm').addEventListener('input', updateSummary);
+
+  // Wire transport tiles to select
+  const transportSelect = document.querySelector('select[name="transportMode"]');
+  const tiles = document.querySelectorAll('.transport-tile');
+  function updateTiles() {
+    tiles.forEach(t => {
+      if (t.dataset.mode === transportSelect.value) t.classList.add('active');
+      else t.classList.remove('active');
+    });
+  }
+  tiles.forEach(t => {
+    t.addEventListener('click', () => {
+      const mode = t.dataset.mode;
+      transportSelect.value = mode;
+      updateTiles();
+    });
+  });
+  updateTiles();
 }
 
 function addPackage() {
