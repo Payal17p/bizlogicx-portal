@@ -420,40 +420,78 @@ async function renderDashboard() {
     const res = await fetch('/api/dashboard', { credentials: 'include' });
     const data = await res.json();
     const dashboard = data.dashboard || {};
-
     mainContent.innerHTML = `
-      <div class="dashboard-simple">
-        <div class="welcome-card">
+      <div class="dashboard-rich">
+        <div class="hero">
           <div>
             <p class="eyebrow">Welcome back</p>
-            <h2>${currentUser?.fullName || 'User'}</h2>
-            <p>${currentUser?.username || 'user'} • ${currentUser?.email || 'No email on file'}</p>
+            <h2>Freight Operations Hub</h2>
+            <p class="subtitle">Biz LogicX · Single-window logistics orchestration</p>
           </div>
-          <div class="dashboard-actions">
-            <button class="btn btn-primary" onclick="switchTab('shipment')">Add Shipment</button>
-            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+          <div>
+            <button class="btn btn-primary" onclick="switchTab('shipment')">+ New Shipment</button>
           </div>
         </div>
 
-        <div class="info-grid">
-          <div class="info-card">
-            <h3>Your Profile</h3>
-            <ul>
-              <li><strong>Name:</strong> ${currentUser?.fullName || 'N/A'}</li>
-              <li><strong>Username:</strong> ${currentUser?.username || 'N/A'}</li>
-              <li><strong>Email:</strong> ${currentUser?.email || 'N/A'}</li>
-              <li><strong>Mobile:</strong> ${currentUser?.phone || 'N/A'}</li>
-            </ul>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div class="kpi-value">${dashboard.totalShipments || 0}</div>
+            <div class="kpi-label">Total Shipments</div>
+            <div class="kpi-note">All time records</div>
           </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-plane"></i></div>
+            <div class="kpi-value">${dashboard.airFreight || 0}</div>
+            <div class="kpi-label">Air Freight</div>
+            <div class="kpi-note">Air cargo entries</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-ship"></i></div>
+            <div class="kpi-value">${dashboard.oceanFreight || 0}</div>
+            <div class="kpi-label">Ocean Freight</div>
+            <div class="kpi-note">Sea cargo entries</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-plane-departure"></i></div>
+            <div class="kpi-value">${dashboard.exports || 0}</div>
+            <div class="kpi-label">Exports</div>
+            <div class="kpi-note">Outbound shipments</div>
+          </div>
+        </div>
 
-          <div class="info-card">
-            <h3>Quick Summary</h3>
-            <ul>
-              <li><strong>Total Shipments:</strong> ${dashboard.totalShipments || 0}</li>
-              <li><strong>Air Freight:</strong> ${dashboard.airFreight || 0}</li>
-              <li><strong>Ocean Freight:</strong> ${dashboard.oceanFreight || 0}</li>
-              <li><strong>Exports:</strong> ${dashboard.exports || 0}</li>
-            </ul>
+        <div class="tiles-grid">
+          <div class="tile" onclick="switchTab('shipment')">
+            <div class="tile-icon">+</div>
+            <div class="tile-title">Log Shipment</div>
+            <div class="tile-sub">Create a new freight entry</div>
+          </div>
+          <div class="tile" onclick="switchTab('logs')">
+            <div class="tile-icon">≡</div>
+            <div class="tile-title">View Ledger</div>
+            <div class="tile-sub">Browse all shipment records</div>
+          </div>
+          <div class="tile" onclick="openAssistant()">
+            <div class="tile-icon">🤖</div>
+            <div class="tile-title">AI Assistant</div>
+            <div class="tile-sub">Ask logistics questions</div>
+          </div>
+          <div class="tile" onclick="switchTab('settings')">
+            <div class="tile-icon">⚙️</div>
+            <div class="tile-title">Configuration</div>
+            <div class="tile-sub">System settings & database</div>
+          </div>
+        </div>
+
+        <div class="workflow">
+          <div class="workflow-card">
+            <h4>Operator Workflow Guide</h4>
+            <div class="steps">
+              <div class="step"><div class="step-num">01</div><div class="step-body"><strong>Setup & Configure</strong><div class="small">Initialize database and configure system parameters</div></div></div>
+              <div class="step"><div class="step-num">02</div><div class="step-body"><strong>Log Dispatch</strong><div class="small">Enter dimensions, values, and attach compliance documents</div></div></div>
+              <div class="step"><div class="step-num">03</div><div class="step-body"><strong>Auto-Compliance Checks</strong><div class="small">Automatic warnings for EWAB, sample limits, and compliance</div></div></div>
+              <div class="step"><div class="step-num">04</div><div class="step-body"><strong>Audit Trail</strong><div class="small">View and audit all committed entries in the logs ledger</div></div></div>
+            </div>
           </div>
         </div>
       </div>
