@@ -1,15 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biz LogicX Portal - New Shipment</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipment Dashboard</title>
+
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div id="app"></div>
-  <script>window.initialPage = 'shipment';</script>
-  <script src="/app.js"></script>
+
+<div class="dashboard">
+
+    <button class="logout" onclick="logout()">Logout</button>
+
+    <h2>Shipment Management</h2>
+    <div class="summary">
+
+    <div class="card">
+        <h3>Total</h3>
+        <p id="totalCount">0</p>
+    </div>
+
+    <div class="card">
+        <h3>Pending</h3>
+        <p id="pendingCount">0</p>
+    </div>
+
+    <div class="card">
+        <h3>In Transit</h3>
+        <p id="transitCount">0</p>
+    </div>
+
+    <div class="card">
+        <h3>Delivered</h3>
+        <p id="deliveredCount">0</p>
+    </div>
+
+</div>
+    <div class="filters">
+      <input
+      type="text"
+      id="search"
+      placeholder="Search by Shipment No or Customer Name"
+      onkeyup="loadShipments()">
+      <select id="filterStatus" onchange="loadShipments()">
+      <option value="All">All Status</option>
+      <option value="Pending">Pending</option>
+      <option value="In Transit">In Transit</option>
+      <option value="Delivered">Delivered</option>
+    </select>
+    </div>
+
+    <div class="form-row">
+      <input type="text" id="shipmentNo" placeholder="Shipment Number">
+      <input type="text" id="customerName" placeholder="Customer Name">
+      <input type="text" id="origin" placeholder="Origin">
+      <input type="text" id="destination" placeholder="Destination">
+      <select id="status">
+          <option>Pending</option>
+          <option>In Transit</option>
+          <option>Delivered</option>
+      </select>
+      <button class="primary-btn" onclick="createShipment()">Add Shipment</button>
+    </div>
+
+    <table>
+
+        <thead>
+
+            <tr>
+    <th>Shipment No</th>
+    <th>Customer</th>
+    <th>Origin</th>
+    <th>Destination</th>
+    <th>Status</th>
+    <th>Action</th>
+</tr>
+
+        </thead>
+
+        <tbody id="shipmentTable">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<script src="/js/shipment.js"></script>
+
 </body>
 </html>
