@@ -10,6 +10,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bizlogicx-dev-secret-key-2024';
+const WHATSAPP_SUPPORT_NUMBER = String(process.env.WHATSAPP_SUPPORT_NUMBER || '').replace(/\D/g, '');
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(cors({ origin: true, credentials: true }));
@@ -25,7 +26,7 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, default: 'Operator' },
   company: { type: String, default: 'Biz LogicX' },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  phone: { type: String, trim: true },
+  phone: { type: String, required: true, trim: true },
   resetToken: String,
   resetTokenExpiry: Date,
   createdAt: { type: Date, default: Date.now }
@@ -156,6 +157,14 @@ function isStrongEnoughPassword(password) {
   return typeof password === 'string' && password.length >= 6;
 }
 
+function isValidPhone(phone) {
+  return /^\+?[0-9]{10,15}$/.test(phone);
+}
+
+function getRequestBaseUrl(req) {
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 function toNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -219,8 +228,8 @@ app.post('/api/auth/register', async (req, res) => {
   const fullName = normalizeText(req.body.fullName);
   const phone = normalizeText(req.body.phone);
 
-  if (!username || !email || !password || !fullName) {
-    return res.status(400).json({ ok: false, message: 'Full name, email, username and password are required' });
+  if (!username || !email || !password || !fullName || !phone) {
+    return res.status(400).json({ ok: false, message: 'Full name, email, username, mobile number and password are required' });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ ok: false, message: 'Enter a valid email address' });
@@ -230,6 +239,9 @@ app.post('/api/auth/register', async (req, res) => {
   }
   if (!isStrongEnoughPassword(password)) {
     return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters' });
+  }
+  if (!isValidPhone(phone)) {
+    return res.status(400).json({ ok: false, message: 'Enter a valid mobile number with 10 to 15 digits' });
   }
   try {
     const existing = await User.findOne({ $or: [{ username }, { email }] });
@@ -245,12 +257,10 @@ app.post('/api/auth/register', async (req, res) => {
       email,
       phone
     });
-    const token = createToken(user);
-    res.cookie('token', token, cookieOptions);
     res.status(201).json({
       ok: true,
-      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email },
-      token
+      message: 'Registration successful. Please login to continue.',
+      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email, phone: user.phone }
     });
   } catch (error) {
     console.error(error);
@@ -306,7 +316,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     }
     res.json({
       ok: true,
-      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email }
+      user: { id: user._id, username: user.username, fullName: user.fullName, email: user.email, phone: user.phone }
     });
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Unable to load profile' });
@@ -326,13 +336,20 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
     const resetToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    const resetLink = `${getRequestBaseUrl(req)}/?resetToken=${encodeURIComponent(resetToken)}`;
+    const whatsappMessage = encodeURIComponent(`Biz LogicX password reset request for ${email}. Reset link: ${resetLink}`);
+    const whatsappLink = WHATSAPP_SUPPORT_NUMBER
+      ? `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=${whatsappMessage}`
+      : `https://wa.me/?text=${whatsappMessage}`;
     
     await User.findByIdAndUpdate(user._id, { resetToken, resetTokenExpiry });
     
     res.json({
       ok: true,
-      message: isProduction ? 'If this email exists, a reset link will be sent.' : 'Password reset token generated',
-      token: isProduction ? undefined : resetToken
+      message: 'Password reset link is ready. Open WhatsApp to continue.',
+      token: isProduction ? undefined : resetToken,
+      resetLink,
+      whatsappLink
     });
   } catch (error) {
     console.error(error);

@@ -43,7 +43,6 @@ function showLoginScreen() {
         <div class="tab-buttons">
           <button class="tab-btn active" onclick="switchAuthTab('login', this)">Login</button>
           <button class="tab-btn" onclick="switchAuthTab('register', this)">Register</button>
-          <button class="tab-btn" onclick="switchAuthTab('forgot', this)">Forgot Password</button>
         </div>
 
         <div id="authMessage" class="auth-message" style="display: none;"></div>
@@ -58,6 +57,7 @@ function showLoginScreen() {
             <input type="password" name="password" required>
           </div>
           <button type="submit" class="submit-btn">Login</button>
+          <button type="button" class="forgot-link" onclick="switchAuthTab('forgot')">Forgot password?</button>
         </form>
 
         <form id="registerForm" style="display: none;">
@@ -78,10 +78,11 @@ function showLoginScreen() {
             <input type="password" name="password" required>
           </div>
           <div class="form-group">
-            <label>Phone (Optional)</label>
-            <input type="tel" name="phone">
+            <label>Mobile Number</label>
+            <input type="tel" name="phone" inputmode="tel" pattern="\+?[0-9]{10,15}" placeholder="9876543210" required>
           </div>
           <button type="submit" class="submit-btn">Create Account</button>
+          <button type="button" class="auth-secondary-link" onclick="switchAuthTab('login')">Already registered? Login</button>
         </form>
 
         <form id="forgotForm" style="display: none;">
@@ -90,6 +91,7 @@ function showLoginScreen() {
             <input type="email" name="email" required>
           </div>
           <button type="submit" class="submit-btn">Send Reset Link</button>
+          <button type="button" class="auth-secondary-link" onclick="switchAuthTab('login')">Back to Login</button>
           <div id="resetStatus" style="margin-top: 15px;"></div>
           <div id="resetPasswordForm" style="display: none; margin-top: 15px;">
             <div class="form-group">
@@ -110,12 +112,22 @@ function showLoginScreen() {
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
   document.getElementById('registerForm').addEventListener('submit', handleRegister);
   document.getElementById('forgotForm').addEventListener('submit', handleForgotPassword);
+
+  const resetToken = new URLSearchParams(window.location.search).get('resetToken');
+  if (resetToken) {
+    switchAuthTab('forgot');
+    document.getElementById('resetToken').value = resetToken;
+    document.getElementById('resetPasswordForm').style.display = 'block';
+    showAuthMessage('Enter your new password to reset your account.', 'success');
+  }
 }
 
 function switchAuthTab(tab, button) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('form').forEach(f => f.style.display = 'none');
+  document.querySelectorAll('#loginForm, #registerForm, #forgotForm').forEach(f => f.style.display = 'none');
   document.getElementById('authMessage').style.display = 'none';
+  const resetStatus = document.getElementById('resetStatus');
+  if (resetStatus) resetStatus.innerHTML = '';
   
   const activeButton = button || document.querySelector(`.tab-btn[onclick*="${tab}"]`);
   if (activeButton) activeButton.classList.add('active');
@@ -175,8 +187,9 @@ async function handleRegister(e) {
     
     const result = await res.json();
     if (res.ok) {
-      currentUser = result.user;
-      showMainApp();
+      form.reset();
+      switchAuthTab('login');
+      showAuthMessage(result.message || 'Registration successful. Please login to continue.', 'success');
     } else {
       showAuthMessage(result.message || 'Registration failed', 'error');
     }
@@ -198,6 +211,22 @@ async function handleForgotPassword(e) {
     
     const result = await res.json();
     if (res.ok) {
+      const whatsappButton = result.whatsappLink
+        ? `<a class="whatsapp-reset-btn" href="${result.whatsappLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Open WhatsApp Reset Link</a>`
+        : '';
+      document.getElementById('resetStatus').innerHTML = `
+        <div class="success-msg reset-box">
+          <div>${result.message || 'Reset link generated.'}</div>
+          ${whatsappButton}
+          ${result.resetLink ? `<a class="reset-copy-link" href="${result.resetLink}">Open reset page</a>` : ''}
+        </div>
+      `;
+      document.getElementById('resetToken').value = result.token || '';
+      document.getElementById('resetPasswordForm').style.display = result.token ? 'block' : 'none';
+      if (result.whatsappLink) {
+        window.open(result.whatsappLink, '_blank', 'noopener');
+      }
+      return;
       document.getElementById('resetStatus').innerHTML = `
         <div class="success-msg" style="color: #10b981; padding: 10px; background: #f0fdf4; border-radius: 6px; margin-top: 10px;">
         ✓ Reset token: ${result.token}
@@ -240,6 +269,7 @@ async function submitResetPassword() {
     const result = await res.json();
     if (res.ok) {
       showAuthMessage('Password reset successful! You can now login.', 'success');
+      window.history.replaceState({}, document.title, window.location.pathname);
       setTimeout(() => switchAuthTab('login'), 2000);
     } else {
       document.getElementById('resetStatus').innerHTML = `
@@ -323,88 +353,52 @@ function switchTab(tab, navItem) {
 // ─────────────────────────────── DASHBOARD ───────────────────────────────
 
 async function renderDashboard() {
-  const content = document.getElementById('mainContent');
-  
+  const mainContent = document.getElementById('mainContent');
+
   try {
     const res = await fetch('/api/dashboard', { credentials: 'include' });
-    const { dashboard } = await res.json();
-    
-    const mainContent = document.getElementById('mainContent');
+    const data = await res.json();
+    const dashboard = data.dashboard || {};
+
     mainContent.innerHTML = `
-      <div class="dashboard">
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
-            <div class="kpi-value">${dashboard.totalShipments}</div>
-            <div class="kpi-label">Total Shipments</div>
+      <div class="dashboard-simple">
+        <div class="welcome-card">
+          <div>
+            <p class="eyebrow">Welcome back</p>
+            <h2>${currentUser?.fullName || 'User'}</h2>
+            <p>${currentUser?.username || 'user'} • ${currentUser?.email || 'No email on file'}</p>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-plane"></i></div>
-            <div class="kpi-value">${dashboard.airFreight}</div>
-            <div class="kpi-label">Air Freight</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-ship"></i></div>
-            <div class="kpi-value">${dashboard.oceanFreight}</div>
-            <div class="kpi-label">Ocean Freight</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-globe"></i></div>
-            <div class="kpi-value">${dashboard.exports}</div>
-            <div class="kpi-label">Exports</div>
-          </div>
-          <div class="kpi-card financial revenue">
-            <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
-            <div class="kpi-value">₹ ${dashboard.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
-            <div class="kpi-label">Total Revenue</div>
-          </div>
-          <div class="kpi-card financial expense">
-            <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
-            <div class="kpi-value">₹ ${dashboard.totalCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
-            <div class="kpi-label">Total Expense</div>
-          </div>
-          <div class="kpi-card financial ${dashboard.totalProfit >= 0 ? 'profit' : 'loss'}">
-            <div class="kpi-icon"><i class="fas fa-${dashboard.totalProfit >= 0 ? 'smile' : 'frown'}"></i></div>
-            <div class="kpi-value">₹ ${dashboard.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
-            <div class="kpi-label">${dashboard.totalProfit >= 0 ? 'Total Profit' : 'Total Loss'}</div>
+          <div class="dashboard-actions">
+            <button class="btn btn-primary" onclick="switchTab('shipment')">Add Shipment</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
           </div>
         </div>
 
-        <div class="recent-shipments">
-          <h3>Recent Shipments</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Shipment ID</th>
-                <th>Shipper</th>
-                <th>Consignee</th>
-                <th>Mode</th>
-                <th>Revenue</th>
-                <th>Expense</th>
-                <th>Profit/Loss</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${dashboard.recentShipments.map(s => `
-                <tr>
-                  <td><strong>${s.shipmentId}</strong></td>
-                  <td>${s.shipperName || 'N/A'}</td>
-                  <td>${s.consignee || 'N/A'}</td>
-                  <td><span class="badge badge-${s.transportMode}">${s.transportMode.toUpperCase()}</span></td>
-                  <td>₹ ${(s.totalRevenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
-                  <td>₹ ${(s.totalCost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
-                  <td class="${(s.profit || 0) >= 0 ? 'profit-cell' : 'loss-cell'}">
-                    ₹ ${(s.profit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>Your Profile</h3>
+            <ul>
+              <li><strong>Name:</strong> ${currentUser?.fullName || 'N/A'}</li>
+              <li><strong>Username:</strong> ${currentUser?.username || 'N/A'}</li>
+              <li><strong>Email:</strong> ${currentUser?.email || 'N/A'}</li>
+              <li><strong>Mobile:</strong> ${currentUser?.phone || 'N/A'}</li>
+            </ul>
+          </div>
+
+          <div class="info-card">
+            <h3>Quick Summary</h3>
+            <ul>
+              <li><strong>Total Shipments:</strong> ${dashboard.totalShipments || 0}</li>
+              <li><strong>Air Freight:</strong> ${dashboard.airFreight || 0}</li>
+              <li><strong>Ocean Freight:</strong> ${dashboard.oceanFreight || 0}</li>
+              <li><strong>Exports:</strong> ${dashboard.exports || 0}</li>
+            </ul>
+          </div>
         </div>
       </div>
     `;
   } catch (error) {
-    document.getElementById('mainContent').innerHTML = '<p class="error">Unable to load dashboard</p>';
+    mainContent.innerHTML = '<p class="error">Unable to load dashboard</p>';
   }
 }
 

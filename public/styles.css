@@ -33,12 +33,33 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .form-group input:focus, .form-group select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .submit-btn { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.3s; }
 .submit-btn:hover { background: #2563eb; }
+.forgot-link, .auth-secondary-link { width: 100%; margin-top: 12px; padding: 0; background: transparent; border: none; color: #2563eb; cursor: pointer; font-size: 14px; font-weight: 600; text-align: center; }
+.forgot-link:hover, .auth-secondary-link:hover { color: #1d4ed8; text-decoration: underline; }
+.reset-box { color: #166534; padding: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; margin-top: 10px; font-size: 14px; }
+.whatsapp-reset-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 10px 12px; background: #16a34a; color: white; border-radius: 6px; text-decoration: none; font-weight: 700; }
+.whatsapp-reset-btn:hover { background: #15803d; }
+.reset-copy-link { display: block; margin-top: 10px; color: #2563eb; font-weight: 600; text-align: center; text-decoration: none; }
+.reset-copy-link:hover { text-decoration: underline; }
 
 /* AUTH MESSAGES */
 .subtitle { text-align: center; color: #a0aec0; margin-bottom: 20px; }
 .auth-message { padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; font-weight: 500; }
 .auth-message.error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
 .auth-message.success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+
+/* SIMPLE DASHBOARD */
+.dashboard-simple { display: flex; flex-direction: column; gap: 20px; }
+.welcome-card { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2); }
+.welcome-card h2 { margin: 4px 0 8px; font-size: 28px; }
+.welcome-card p { margin: 0; opacity: 0.9; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.2em; font-size: 12px; opacity: 0.8; font-weight: 700; }
+.dashboard-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.info-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.info-card h3 { margin-top: 0; margin-bottom: 12px; color: #1a2847; }
+.info-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; color: #475569; }
+.info-card li { padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+.info-card li:last-child { border-bottom: none; padding-bottom: 0; }
 
 /* KPI CARDS WITH FINANCIAL STYLING */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
