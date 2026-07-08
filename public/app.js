@@ -390,7 +390,7 @@ function saveAssistantName() {
   document.getElementById('assistantNameInput').style.display = 'none';
 }
 
-function switchTab(tab, navItem) {
+async function switchTab(tab, navItem) {
   currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const activeItem = navItem || document.querySelector(`.nav-item[data-tab="${tab}"]`);
@@ -405,10 +405,14 @@ function switchTab(tab, navItem) {
   
   document.getElementById('pageTitle').textContent = titles[tab] || tab;
   
-  if (tab === 'dashboard') renderDashboard();
-  else if (tab === 'shipment') renderShipmentForm();
-  else if (tab === 'logs') renderLogs();
-  else if (tab === 'settings') renderSettings();
+  if (tab === 'dashboard') {
+    await loadShipments();
+    renderDashboard();
+  } else if (tab === 'shipment') renderShipmentForm();
+  else if (tab === 'logs') {
+    await loadShipments();
+    renderLogs();
+  } else if (tab === 'settings') renderSettings();
 }
 
 // ─────────────────────────────── DASHBOARD ───────────────────────────────
@@ -914,20 +918,40 @@ async function saveShipment(e) {
   e.preventDefault();
   const form = e.target;
 
-  // Collect packages
+  // Collect packages from table rows
   const packages = [];
-  document.querySelectorAll('#packagesContainer .package-item').forEach((row) => {
-    const type = getRowValue(row, 'input[name^="pkg_type_"]');
-    if (type) {
-      packages.push({
-        type,
-        weight: parseFloat(getRowValue(row, 'input[name^="pkg_weight_"]')) || 0,
-        length: parseFloat(getRowValue(row, 'input[name^="pkg_length_"]')) || 0,
-        width: parseFloat(getRowValue(row, 'input[name^="pkg_width_"]')) || 0,
-        height: parseFloat(getRowValue(row, 'input[name^="pkg_height_"]')) || 0,
-        description: getRowValue(row, 'input[name^="pkg_desc_"]')
-      });
-    }
+  document.querySelectorAll('#packageTableBody tr').forEach((row) => {
+    const qty = parseFloat(row.querySelector('input[name^="pkg_qty_"]')?.value || '0') || 0;
+    const L = parseFloat(row.querySelector('input[name^="pkg_l_"]')?.value || '0') || 0;
+    const W = parseFloat(row.querySelector('input[name^="pkg_w_"]')?.value || '0') || 0;
+    const H = parseFloat(row.querySelector('input[name^="pkg_hh_"]')?.value || '0') || 0;
+    const unit = row.querySelector('select[name^="pkg_unit_"]')?.value || 'cm';
+    const gross = parseFloat(row.querySelector('input[name^="pkg_gross_"]')?.value || '0') || 0;
+    const desc = row.querySelector('input[name^="pkg_desc_"]')?.value || '';
+    const hs = row.querySelector('input[name^="pkg_hs_"]')?.value || '';
+
+    if (!desc && !hs && qty <= 0 && gross <= 0) return;
+
+    const Lcm = unit === 'inches' ? L * 2.54 : L;
+    const Wcm = unit === 'inches' ? W * 2.54 : W;
+    const Hcm = unit === 'inches' ? H * 2.54 : H;
+    const dimPerPkg = (Lcm * Wcm * Hcm) / 5000;
+    const dimTotal = dimPerPkg * qty;
+    const grossTotal = gross * qty;
+    const billable = Math.max(grossTotal, dimTotal);
+
+    packages.push({
+      description: desc,
+      hsCode: hs,
+      quantity: qty,
+      length: L,
+      width: W,
+      height: H,
+      unit,
+      grossWeight: gross,
+      dimWeight: parseFloat(dimTotal.toFixed(2)),
+      billableWeight: parseFloat(billable.toFixed(2))
+    });
   });
 
   // Collect revenue
@@ -993,20 +1017,37 @@ async function saveShipment(e) {
 }
 
 function clearForm() {
-  document.getElementById('shipmentForm').reset();
-  document.getElementById('packagesContainer').innerHTML = '';
+  const form = document.getElementById('shipmentForm');
+  if (!form) return;
+  form.reset();
+  document.getElementById('packageTableBody').innerHTML = '';
   document.getElementById('revenueContainer').innerHTML = '';
   document.getElementById('purchaseContainer').innerHTML = '';
-  addPackage();
+  addPackageRow();
   addRevenue();
   addPurchaseItem();
   document.getElementById('summary').style.display = 'none';
+  updatePackageTotals();
 }
 
 // ─────────────────────────────── SHIPMENT LOGS ───────────────────────────────
 
 function renderLogs() {
   const content = document.getElementById('mainContent');
+  if (!allShipments?.length) {
+    content.innerHTML = `
+      <div class="section-card" style="text-align: center; padding: 60px 30px;">
+        <div style="max-width: 560px; margin: 0 auto;">
+          <div style="font-size: 56px; color: #cfd8e7; margin-bottom: 24px;">📦</div>
+          <h2 style="margin-bottom: 12px;">Shipment Ledger</h2>
+          <p style="margin-bottom: 24px; color: #64748b;">No records stored locally yet. Create your first shipment to start tracking freight, margins and compliance.</p>
+          <button class="btn btn-primary" onclick="switchTab('shipment')">Create First Shipment</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   content.innerHTML = `
     <div class="section-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
