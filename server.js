@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +13,12 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'bizlogicx-dev-secret-key-2024';
 const WHATSAPP_SUPPORT_NUMBER = String(process.env.WHATSAPP_SUPPORT_NUMBER || '').replace(/\D/g, '');
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = String(process.env.SMTP_SECURE).toLowerCase() === 'true';
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'Biz LogicX <no-reply@bizlogicx.com>';
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(cors({ origin: true, credentials: true }));
@@ -169,6 +176,20 @@ function getRequestBaseUrl(req) {
 function toNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function getEmailTransporter() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    }
+  });
 }
 
 function calculateShipmentTotals(revenueHeads = [], purchaseItems = []) {
@@ -335,23 +356,55 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     if (!user) {
       return res.status(404).json({ ok: false, message: 'Email not found' });
     }
+
     const resetToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
     const resetLink = `${getRequestBaseUrl(req)}/?resetToken=${encodeURIComponent(resetToken)}`;
-    const whatsappMessage = encodeURIComponent(`Biz LogicX password reset request for ${email}. Reset link: ${resetLink}`);
-    const whatsappLink = WHATSAPP_SUPPORT_NUMBER
-      ? `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=${whatsappMessage}`
-      : `https://wa.me/?text=${whatsappMessage}`;
-    
+
     await User.findByIdAndUpdate(user._id, { resetToken, resetTokenExpiry });
-    
-    res.json({
+
+    const transporter = getEmailTransporter();
+    let emailSent = false;
+
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: EMAIL_FROM,
+          to: email,
+          subject: 'Biz LogicX Password Reset',
+          text: `Hi ${user.fullName || user.username},\n\nWe received a request to reset your Biz LogicX password. Click the link below to reset it:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nBiz LogicX Support`,
+          html: `
+            <p>Hi ${user.fullName || user.username},</p>
+            <p>We received a request to reset your Biz LogicX password.</p>
+            <p><a href="${resetLink}">Click here to reset your password</a></p>
+            <p>If you did not request this, please ignore this email.</p>
+            <p>Thanks,<br/>Biz LogicX Support</p>
+          `
+        });
+        emailSent = true;
+      } catch (mailError) {
+        console.error('Password reset email send failed:', mailError);
+      }
+    }
+
+    const response = {
       ok: true,
-      message: 'Password reset link is ready. Open WhatsApp to continue.',
-      token: isProduction ? undefined : resetToken,
+      message: emailSent
+        ? 'Password reset instructions have been sent to your email.'
+        : 'Password reset link is ready. Use the provided link to continue.',
       resetLink,
-      whatsappLink
-    });
+      token: isProduction ? undefined : resetToken,
+      emailSent
+    };
+
+    if (!emailSent) {
+      const whatsappMessage = encodeURIComponent(`Biz LogicX password reset request for ${email}. Reset link: ${resetLink}`);
+      response.whatsappLink = WHATSAPP_SUPPORT_NUMBER
+        ? `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=${whatsappMessage}`
+        : `https://wa.me/?text=${whatsappMessage}`;
+    }
+
+    res.json(response);
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, message: 'Unable to process request' });

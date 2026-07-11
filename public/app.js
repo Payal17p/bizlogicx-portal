@@ -211,29 +211,25 @@ async function handleForgotPassword(e) {
     
     const result = await res.json();
     if (res.ok) {
-      const whatsappButton = result.whatsappLink
-        ? `<a class="whatsapp-reset-btn" href="${result.whatsappLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Open WhatsApp Reset Link</a>`
-        : '';
+      let extraAction = '';
+      if (result.emailSent) {
+        extraAction = result.resetLink
+          ? `<div><a class="reset-copy-link" href="${result.resetLink}" target="_blank" rel="noopener">Open reset page</a></div>`
+          : '';
+      } else if (result.whatsappLink) {
+        extraAction = `<a class="whatsapp-reset-btn" href="${result.whatsappLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Open WhatsApp Reset Link</a>`;
+        window.open(result.whatsappLink, '_blank', 'noopener');
+      }
+
       document.getElementById('resetStatus').innerHTML = `
         <div class="success-msg reset-box">
           <div>${result.message || 'Reset link generated.'}</div>
-          ${whatsappButton}
-          ${result.resetLink ? `<a class="reset-copy-link" href="${result.resetLink}">Open reset page</a>` : ''}
+          ${extraAction}
         </div>
       `;
       document.getElementById('resetToken').value = result.token || '';
       document.getElementById('resetPasswordForm').style.display = result.token ? 'block' : 'none';
-      if (result.whatsappLink) {
-        window.open(result.whatsappLink, '_blank', 'noopener');
-      }
       return;
-      document.getElementById('resetStatus').innerHTML = `
-        <div class="success-msg" style="color: #10b981; padding: 10px; background: #f0fdf4; border-radius: 6px; margin-top: 10px;">
-        ✓ Reset token: ${result.token}
-        </div>
-      `;
-      document.getElementById('resetToken').value = result.token || '';
-      document.getElementById('resetPasswordForm').style.display = 'block';
     } else {
       document.getElementById('resetStatus').innerHTML = `
         <div class="error-msg" style="color: #ef4444; padding: 10px; background: #fef2f2; border-radius: 6px; margin-top: 10px;">
@@ -1299,11 +1295,12 @@ async function saveShipment(e) {
       method,
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(formData)
+      body: JSON.stringify(payload)
     });
 
     if (res.ok) {
       alert(editingShipmentId ? '✓ Shipment updated successfully' : '✓ Shipment saved successfully');
+      editingShipmentId = null;
       clearForm();
       await loadShipments();
       switchTab('logs');
