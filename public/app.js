@@ -390,7 +390,7 @@ function saveAssistantName() {
   document.getElementById('assistantNameInput').style.display = 'none';
 }
 
-async function switchTab(tab, navItem) {
+async function switchTab(tab, navItem, options = {}) {
   currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const activeItem = navItem || document.querySelector(`.nav-item[data-tab="${tab}"]`);
@@ -408,8 +408,12 @@ async function switchTab(tab, navItem) {
   if (tab === 'dashboard') {
     await loadShipments();
     renderDashboard();
-  } else if (tab === 'shipment') renderShipmentForm();
-  else if (tab === 'logs') {
+  } else if (tab === 'shipment') {
+    if (!options.keepEdit) {
+      editingShipmentId = null;
+    }
+    renderShipmentForm();
+  } else if (tab === 'logs') {
     await loadShipments();
     renderLogs();
   } else if (tab === 'settings') renderSettings();
@@ -695,17 +699,166 @@ function renderShipmentForm() {
       </div>
 
       <!-- REVENUE HEADS -->
-      <div class="form-section">
-        <div class="form-section-title"><i class="fas fa-money-bill-wave"></i> Revenue Heads (Sales)</div>
-        <div id="revenueContainer"></div>
-        <button type="button" class="add-btn" onclick="addRevenue()"><i class="fas fa-plus"></i> Add Revenue Head</button>
+      <div class="form-section revenue-section">
+        <div class="form-section-title"><i class="fas fa-money-bill-wave"></i> Sale Items (Revenue)</div>
+        <div class="section-panel revenue-panel">
+          <div class="panel-row">
+            <div class="field-group">
+              <label>Category</label>
+              <select id="revCategory">
+                <option value="Port to Port - Air">Port to Port - Air</option>
+                <option value="Port to Port - Sea">Port to Port - Sea</option>
+                <option value="Door to Door">Door to Door</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Charge Head</label>
+              <select id="revHead">
+                <option value="Freight">Freight</option>
+                <option value="Handling">Handling</option>
+                <option value="Insurance">Insurance</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>SAC Code (auto)</label>
+              <input id="revSac" type="text" readonly value="996531">
+            </div>
+          </div>
+          <div class="panel-row">
+            <div class="field-group">
+              <label>Unit Type</label>
+              <select id="revUnit">
+                <option>Fix</option>
+                <option>Per Kg</option>
+                <option>Per Shipment</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Qty</label>
+              <input id="revQty" type="number" min="1" value="1">
+            </div>
+            <div class="field-group">
+              <label>Rate</label>
+              <input id="revRate" type="number" min="0" step="0.01" value="0.00">
+            </div>
+            <div class="field-group">
+              <label>Currency</label>
+              <select id="revCurrency">
+                <option>INR</option>
+                <option>USD</option>
+                <option>EUR</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Tax Rate %</label>
+              <input id="revTax" type="number" min="0" step="0.01" value="18">
+            </div>
+            <div class="field-group field-action">
+              <button type="button" class="btn btn-primary btn-add" onclick="addSaleItem()">+ Add Sale</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="table section-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Charge Head</th>
+                <th>SAC</th>
+                <th>Unit Type</th>
+                <th>QTY</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Ex. Rate</th>
+                <th>Tax</th>
+                <th>Total (INR)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="revenueTableBody">
+              <tr><td colspan="11" class="empty-state">No sale items added yet.</td></tr>
+            </tbody>
+          </table>
+          <div class="section-total"><span>Total Revenue (INR):</span> <strong id="revenueTotal">₹0.00</strong></div>
+        </div>
       </div>
 
       <!-- PURCHASE ITEMS -->
-      <div class="form-section">
+      <div class="form-section purchase-section">
         <div class="form-section-title"><i class="fas fa-shopping-cart"></i> Purchase Items (Costs)</div>
-        <div id="purchaseContainer"></div>
-        <button type="button" class="add-btn" onclick="addPurchaseItem()"><i class="fas fa-plus"></i> Add Purchase Item</button>
+        <div class="section-panel purchase-panel">
+          <div class="panel-row">
+            <div class="field-group">
+              <label>Vendor</label>
+              <select id="purchVendor">
+                <option value="">-- Select Vendor --</option>
+                <option value="Vendor A">Vendor A</option>
+                <option value="Vendor B">Vendor B</option>
+                <option value="Vendor C">Vendor C</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Description</label>
+              <input id="purchDesc" type="text" placeholder="e.g. FREIGHT CHARGE">
+            </div>
+            <div class="field-group">
+              <label>Unit Type</label>
+              <select id="purchUnit">
+                <option>Fix</option>
+                <option>Per Kg</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Currency</label>
+              <select id="purchCurrency">
+                <option>INR</option>
+                <option>USD</option>
+                <option>EUR</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-row">
+            <div class="field-group">
+              <label>Qty</label>
+              <input id="purchQty" type="number" min="1" value="1">
+            </div>
+            <div class="field-group">
+              <label>Rate</label>
+              <input id="purchRate" type="number" min="0" step="0.01" value="0.00">
+            </div>
+            <div class="field-group">
+              <label>Tax Rate %</label>
+              <input id="purchTax" type="number" min="0" step="0.01" value="18">
+            </div>
+            <div class="field-group field-action">
+              <button type="button" class="btn btn-danger btn-add" onclick="addCostItem()">+ Add Cost</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="table section-table">
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Description</th>
+                <th>Unit Type</th>
+                <th>QTY</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Ex. Rate</th>
+                <th>Tax</th>
+                <th>Total (INR)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="purchaseTableBody">
+              <tr><td colspan="10" class="empty-state">No cost items added yet.</td></tr>
+            </tbody>
+          </table>
+          <div class="section-total"><span>Total Cost (INR):</span> <strong id="costTotal">₹0.00</strong></div>
+        </div>
       </div>
 
       <!-- REMARKS -->
@@ -744,16 +897,14 @@ function renderShipmentForm() {
   `;
 
   // Initialize form
-  // initialize package table
-  addPackage();
-  // remove any simple package items and replace with table-based row
   document.getElementById('packagesContainer')?.remove();
   addPackageRow();
-  addRevenue();
-  addPurchaseItem();
+  initializeRevenueSection();
+  initializePurchaseSection();
 
   document.getElementById('shipmentForm').addEventListener('submit', saveShipment);
   document.getElementById('shipmentForm').addEventListener('input', updateSummary);
+  setSaveButtonLabel();
 
   // Wire transport tiles to select
   const transportSelect = document.querySelector('select[name="transportMode"]');
@@ -841,44 +992,176 @@ function updatePackageTotals() {
   document.getElementById('pkgTotalBillable').textContent = `${totalBill.toFixed(2)} kg`;
 }
 
-function addRevenue() {
-  const container = document.getElementById('revenueContainer');
-  const idx = container.children.length;
-  const row = document.createElement('div');
-  row.className = 'package-item';
-  row.innerHTML = `
-    <input type="text" placeholder="Category" name="rev_cat_${idx}">
-    <input type="text" placeholder="Head" name="rev_head_${idx}">
-    <input type="number" placeholder="Qty" name="rev_qty_${idx}" step="0.01">
-    <input type="number" placeholder="Rate" name="rev_rate_${idx}" step="0.01">
-    <select name="rev_curr_${idx}">
-      <option value="INR">INR</option>
-      <option value="USD">USD</option>
-      <option value="EUR">EUR</option>
-    </select>
-    <button type="button" class="btn-delete" onclick="this.parentElement.remove()">Delete</button>
-  `;
-  container.appendChild(row);
+function initializeRevenueSection() {
+  document.getElementById('revenueTableBody').innerHTML = `<tr><td colspan="11" class="empty-state">No sale items added yet.</td></tr>`;
+  document.getElementById('revenueTotal').textContent = '₹0.00';
 }
 
-function addPurchaseItem() {
-  const container = document.getElementById('purchaseContainer');
-  const idx = container.children.length;
-  const row = document.createElement('div');
-  row.className = 'package-item';
-  row.innerHTML = `
-    <input type="text" placeholder="Vendor" name="purch_vendor_${idx}">
-    <input type="text" placeholder="Description" name="purch_desc_${idx}">
-    <input type="number" placeholder="Qty" name="purch_qty_${idx}" step="0.01">
-    <input type="number" placeholder="Rate" name="purch_rate_${idx}" step="0.01">
-    <select name="purch_curr_${idx}">
-      <option value="INR">INR</option>
-      <option value="USD">USD</option>
-      <option value="EUR">EUR</option>
-    </select>
-    <button type="button" class="btn-delete" onclick="this.parentElement.remove()">Delete</button>
+function initializePurchaseSection() {
+  document.getElementById('purchaseTableBody').innerHTML = `<tr><td colspan="10" class="empty-state">No cost items added yet.</td></tr>`;
+  document.getElementById('costTotal').textContent = '₹0.00';
+}
+
+function addRevenueRow(item = {}) {
+  const tbody = document.getElementById('revenueTableBody');
+  if (tbody.querySelector('.empty-state')) tbody.innerHTML = '';
+
+  const total = item.quantity * item.rate;
+  const tr = document.createElement('tr');
+  tr.className = 'package-item';
+  tr.innerHTML = `
+    <td><select name="rev_cat_${Date.now()}"><option value="${item.category || 'Port to Port - Air'}">${item.category || 'Port to Port - Air'}</option></select></td>
+    <td><input name="rev_head_${Date.now()}" value="${item.head || ''}" /></td>
+    <td><input name="rev_sac_${Date.now()}" value="${item.sac || ''}" readonly /></td>
+    <td><input name="rev_unit_${Date.now()}" value="${item.unit || 'Fix'}" readonly /></td>
+    <td><select name="rev_curr_${Date.now()}">
+        <option value="INR" ${item.currency === 'INR' ? 'selected' : ''}>INR</option>
+        <option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option>
+        <option value="EUR" ${item.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+      </select></td>
+    <td><input name="rev_qty_${Date.now()}" type="number" value="${item.quantity || 0}" min="0" /></td>
+    <td><input name="rev_rate_${Date.now()}" type="number" step="0.01" value="${item.rate || 0}" /></td>
+    <td>₹${(item.quantity * item.rate).toFixed(2)}</td>
+    <td>1</td>
+    <td><input name="rev_tax_${Date.now()}" type="number" step="0.01" value="${item.taxRate || 0}" />%</td>
+    <td class="rev-total">₹${total.toFixed(2)}</td>
+    <td><button type="button" class="btn-delete" onclick="this.closest('tr').remove(); updateRevenueTotals(); updateSummary(); setSaveButtonLabel();">Delete</button></td>
   `;
-  container.appendChild(row);
+  tbody.appendChild(tr);
+  tr.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', () => {
+      updateRevenueRow(tr);
+      updateRevenueTotals();
+      updateSummary();
+      setSaveButtonLabel();
+    });
+  });
+}
+
+function addPurchaseRow(item = {}) {
+  const tbody = document.getElementById('purchaseTableBody');
+  if (tbody.querySelector('.empty-state')) tbody.innerHTML = '';
+
+  const total = item.quantity * item.rate;
+  const tr = document.createElement('tr');
+  tr.className = 'package-item';
+  tr.innerHTML = `
+    <td><select name="purch_vendor_${Date.now()}"><option value="${item.vendor || ''}">${item.vendor || ''}</option></select></td>
+    <td><input name="purch_desc_${Date.now()}" value="${item.description || ''}" /></td>
+    <td><input name="purch_unit_${Date.now()}" value="${item.unit || 'Fix'}" readonly /></td>
+    <td><input name="purch_qty_${Date.now()}" type="number" value="${item.quantity || 0}" min="0" /></td>
+    <td><input name="purch_rate_${Date.now()}" type="number" step="0.01" value="${item.rate || 0}" /></td>
+    <td>₹${(item.quantity * item.rate).toFixed(2)}</td>
+    <td>1</td>
+    <td><select name="purch_curr_${Date.now()}">
+        <option value="INR" ${item.currency === 'INR' ? 'selected' : ''}>INR</option>
+        <option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option>
+        <option value="EUR" ${item.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+      </select></td>
+    <td class="purch-total">₹${total.toFixed(2)}</td>
+    <td><button type="button" class="btn-delete" onclick="this.closest('tr').remove(); updateCostTotals(); updateSummary(); setSaveButtonLabel();">Delete</button></td>
+  `;
+  tbody.appendChild(tr);
+  tr.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', () => {
+      updatePurchaseRow(tr);
+      updateCostTotals();
+      updateSummary();
+      setSaveButtonLabel();
+    });
+  });
+}
+
+function updateRevenueRow(row) {
+  const qty = parseFloat(row.querySelector('input[name^="rev_qty_"]')?.value || '0') || 0;
+  const rate = parseFloat(row.querySelector('input[name^="rev_rate_"]')?.value || '0') || 0;
+  const taxRate = parseFloat(row.querySelector('input[name^="rev_tax_"]')?.value || '0') || 0;
+  const total = qty * rate + (qty * rate * taxRate / 100);
+  row.querySelector('.rev-total').textContent = `₹${total.toFixed(2)}`;
+}
+
+function updatePurchaseRow(row) {
+  const qty = parseFloat(row.querySelector('input[name^="purch_qty_"]')?.value || '0') || 0;
+  const rate = parseFloat(row.querySelector('input[name^="purch_rate_"]')?.value || '0') || 0;
+  const taxRate = parseFloat(row.querySelector('input[name^="purch_tax_"]')?.value || '0') || 0;
+  const total = qty * rate + (qty * rate * taxRate / 100);
+  row.querySelector('.purch-total').textContent = `₹${total.toFixed(2)}`;
+}
+
+function setSaveButtonLabel() {
+  const btn = document.querySelector('#shipmentForm button[type="submit"]');
+  if (!btn) return;
+  btn.innerHTML = `<i class="fas fa-save"></i> ${editingShipmentId ? 'Update Shipment' : 'Save Shipment'}`;
+}
+
+function addSaleItem() {
+  const category = document.getElementById('revCategory').value;
+  const head = document.getElementById('revHead').value;
+  const sac = document.getElementById('revSac').value;
+  const unit = document.getElementById('revUnit').value;
+  const qty = parseFloat(document.getElementById('revQty').value) || 0;
+  const rate = parseFloat(document.getElementById('revRate').value) || 0;
+  const currency = document.getElementById('revCurrency').value;
+  const taxRate = parseFloat(document.getElementById('revTax').value) || 0;
+
+  if (!category || !head || qty <= 0) return alert('Please enter category, charge head and quantity');
+
+  addRevenueRow({
+    category,
+    head,
+    sac,
+    unit,
+    quantity: qty,
+    rate,
+    currency,
+    taxRate
+  });
+  updateRevenueTotals();
+  setSaveButtonLabel();
+}
+
+function addCostItem() {
+  const vendor = document.getElementById('purchVendor').value;
+  const description = document.getElementById('purchDesc').value;
+  const unit = document.getElementById('purchUnit').value;
+  const currency = document.getElementById('purchCurrency').value;
+  const qty = parseFloat(document.getElementById('purchQty').value) || 0;
+  const rate = parseFloat(document.getElementById('purchRate').value) || 0;
+  const taxRate = parseFloat(document.getElementById('purchTax').value) || 0;
+
+  if (!vendor || !description || qty <= 0) return alert('Please choose vendor, description and quantity');
+
+  addPurchaseRow({
+    vendor,
+    description,
+    unit,
+    quantity: qty,
+    rate,
+    currency,
+    taxRate
+  });
+  updateCostTotals();
+  setSaveButtonLabel();
+}
+
+function updateRevenueTotals() {
+  const rows = Array.from(document.querySelectorAll('#revenueTableBody tr')).filter(r => !r.querySelector('.empty-state'));
+  const total = rows.reduce((sum, row) => {
+    const value = parseFloat(row.querySelector('.rev-total')?.textContent.replace(/[₹,]/g, '') || '0') || 0;
+    return sum + value;
+  }, 0);
+  document.getElementById('revenueTotal').textContent = `₹${total.toFixed(2)}`;
+  updateSummary();
+}
+
+function updateCostTotals() {
+  const rows = Array.from(document.querySelectorAll('#purchaseTableBody tr')).filter(r => !r.querySelector('.empty-state'));
+  const total = rows.reduce((sum, row) => {
+    const value = parseFloat(row.querySelector('.purch-total')?.textContent.replace(/[₹,]/g, '') || '0') || 0;
+    return sum + value;
+  }, 0);
+  document.getElementById('costTotal').textContent = `₹${total.toFixed(2)}`;
+  updateSummary();
 }
 
 function getRowValue(row, selector) {
@@ -886,22 +1169,17 @@ function getRowValue(row, selector) {
 }
 
 function updateSummary() {
-  const form = document.getElementById('shipmentForm');
   let totalRevenue = 0;
   let totalCost = 0;
 
-  // Calculate revenue
-  document.querySelectorAll('#revenueContainer .package-item').forEach((row) => {
-    const qty = parseFloat(getRowValue(row, 'input[name^="rev_qty_"]')) || 0;
-    const rate = parseFloat(getRowValue(row, 'input[name^="rev_rate_"]')) || 0;
-    totalRevenue += qty * rate;
+  document.querySelectorAll('#revenueTableBody tr.package-item').forEach((row) => {
+    const rowTotal = parseFloat(row.querySelector('.rev-total')?.textContent.replace(/[₹,]/g, '') || '0') || 0;
+    totalRevenue += rowTotal;
   });
 
-  // Calculate costs
-  document.querySelectorAll('#purchaseContainer .package-item').forEach((row) => {
-    const qty = parseFloat(getRowValue(row, 'input[name^="purch_qty_"]')) || 0;
-    const rate = parseFloat(getRowValue(row, 'input[name^="purch_rate_"]')) || 0;
-    totalCost += qty * rate;
+  document.querySelectorAll('#purchaseTableBody tr.package-item').forEach((row) => {
+    const rowTotal = parseFloat(row.querySelector('.purch-total')?.textContent.replace(/[₹,]/g, '') || '0') || 0;
+    totalCost += rowTotal;
   });
 
   const profit = totalRevenue - totalCost;
@@ -918,7 +1196,6 @@ async function saveShipment(e) {
   e.preventDefault();
   const form = e.target;
 
-  // Collect packages from table rows
   const packages = [];
   document.querySelectorAll('#packageTableBody tr').forEach((row) => {
     const qty = parseFloat(row.querySelector('input[name^="pkg_qty_"]')?.value || '0') || 0;
@@ -954,13 +1231,12 @@ async function saveShipment(e) {
     });
   });
 
-  // Collect revenue
   const revenueHeads = [];
-  document.querySelectorAll('#revenueContainer .package-item').forEach((row) => {
-    const category = getRowValue(row, 'input[name^="rev_cat_"]');
-    if (category) {
-      const qty = parseFloat(getRowValue(row, 'input[name^="rev_qty_"]')) || 0;
-      const rate = parseFloat(getRowValue(row, 'input[name^="rev_rate_"]')) || 0;
+  document.querySelectorAll('#revenueTableBody tr.package-item').forEach((row) => {
+    const category = getRowValue(row, 'select[name^="rev_cat_"]');
+    const qty = parseFloat(getRowValue(row, 'input[name^="rev_qty_"]')) || 0;
+    const rate = parseFloat(getRowValue(row, 'input[name^="rev_rate_"]')) || 0;
+    if (category && qty > 0) {
       revenueHeads.push({
         category,
         head: getRowValue(row, 'input[name^="rev_head_"]'),
@@ -972,13 +1248,12 @@ async function saveShipment(e) {
     }
   });
 
-  // Collect purchases
   const purchaseItems = [];
-  document.querySelectorAll('#purchaseContainer .package-item').forEach((row) => {
-    const vendor = getRowValue(row, 'input[name^="purch_vendor_"]');
-    if (vendor) {
-      const qty = parseFloat(getRowValue(row, 'input[name^="purch_qty_"]')) || 0;
-      const rate = parseFloat(getRowValue(row, 'input[name^="purch_rate_"]')) || 0;
+  document.querySelectorAll('#purchaseTableBody tr.package-item').forEach((row) => {
+    const vendor = getRowValue(row, 'select[name^="purch_vendor_"]');
+    const qty = parseFloat(getRowValue(row, 'input[name^="purch_qty_"]')) || 0;
+    const rate = parseFloat(getRowValue(row, 'input[name^="purch_rate_"]')) || 0;
+    if (vendor && qty > 0) {
       purchaseItems.push({
         vendor,
         description: getRowValue(row, 'input[name^="purch_desc_"]'),
@@ -990,26 +1265,51 @@ async function saveShipment(e) {
     }
   });
 
-  const formData = Object.fromEntries(new FormData(form).entries());
-  formData.packages = packages;
-  formData.revenueHeads = revenueHeads;
-  formData.purchaseItems = purchaseItems;
+  const payload = {
+    bookingDate: form.bookingDate?.value || '',
+    direction: form.direction?.value || 'export',
+    transportMode: form.transportMode?.value || 'air',
+    originCountry: form.originCountry?.value || '',
+    originPort: form.originPort?.value || '',
+    destCountry: form.destCountry?.value || '',
+    destPort: form.destPort?.value || '',
+    billTo: form.billTo?.value || '',
+    shipperName: form.shipperName?.value || '',
+    consignee: form.consignee?.value || '',
+    nature: form.nature?.value || '',
+    carrier: form.carrier?.value || '',
+    service: form.service?.value || '',
+    hawb: form.hawb?.value || '',
+    mawb: form.mawb?.value || '',
+    invoiceNo: form.invoiceNo?.value || '',
+    invoiceDate: form.invoiceDate?.value || '',
+    invoiceTotalValue: form.invoiceTotalValue?.value || '',
+    invoiceCurrency: form.invoiceCurrency?.value || 'INR',
+    remarks: form.remarks?.value || '',
+    packages,
+    revenueHeads,
+    purchaseItems
+  };
+
+  const url = editingShipmentId ? `/api/shipments/${editingShipmentId}` : '/api/shipments';
+  const method = editingShipmentId ? 'PUT' : 'POST';
 
   try {
-    const res = await fetch('/api/shipments', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(formData)
     });
 
     if (res.ok) {
-      alert('✓ Shipment saved successfully');
+      alert(editingShipmentId ? '✓ Shipment updated successfully' : '✓ Shipment saved successfully');
       clearForm();
       await loadShipments();
       switchTab('logs');
     } else {
-      alert('Failed to save shipment');
+      const result = await res.json().catch(() => ({}));
+      alert(result.message || 'Failed to save shipment');
     }
   } catch (error) {
     alert('Error saving shipment');
@@ -1019,15 +1319,17 @@ async function saveShipment(e) {
 function clearForm() {
   const form = document.getElementById('shipmentForm');
   if (!form) return;
+  editingShipmentId = null;
   form.reset();
   document.getElementById('packageTableBody').innerHTML = '';
-  document.getElementById('revenueContainer').innerHTML = '';
-  document.getElementById('purchaseContainer').innerHTML = '';
+  document.getElementById('revenueTableBody').innerHTML = '';
+  document.getElementById('purchaseTableBody').innerHTML = '';
   addPackageRow();
-  addRevenue();
-  addPurchaseItem();
+  initializeRevenueSection();
+  initializePurchaseSection();
   document.getElementById('summary').style.display = 'none';
   updatePackageTotals();
+  setSaveButtonLabel();
 }
 
 // ─────────────────────────────── SHIPMENT LOGS ───────────────────────────────
@@ -1118,11 +1420,88 @@ async function deleteShipment(shipmentId) {
 async function editShipment(id) {
   try {
     const res = await fetch(`/api/shipments/${id}`, { credentials: 'include' });
-    if (res.ok) {
-      const { shipment } = await res.json();
-      console.log('Shipment:', shipment);
-      alert('Edit feature coming soon');
-    }
+    if (!res.ok) throw new Error('Unable to load shipment');
+
+    const { shipment } = await res.json();
+    editingShipmentId = shipment._id;
+    await switchTab('shipment', document.querySelector('.nav-item[data-tab="shipment"]'), { keepEdit: true });
+
+    setTimeout(() => {
+      const form = document.getElementById('shipmentForm');
+      if (!form) return;
+
+      [
+        'bookingDate', 'direction', 'transportMode', 'originCountry', 'originPort',
+        'destCountry', 'destPort', 'billTo', 'shipperName', 'consignee',
+        'nature', 'carrier', 'service', 'hawb', 'mawb',
+        'invoiceNo', 'invoiceDate', 'invoiceTotalValue', 'invoiceCurrency', 'remarks'
+      ].forEach(name => {
+        const field = form.querySelector(`[name="${name}"]`);
+        if (field) field.value = shipment[name] || '';
+      });
+
+      const transportSelect = form.querySelector('select[name="transportMode"]');
+      document.querySelectorAll('.transport-tile').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === transportSelect.value);
+      });
+
+      const pkgBody = document.getElementById('packageTableBody');
+      pkgBody.innerHTML = '';
+      (shipment.packages || []).forEach((pkg, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td><input type="text" name="pkg_desc_${index + 1}" value="${pkg.description || ''}" placeholder="Description..."></td>
+          <td><input type="text" name="pkg_hs_${index + 1}" value="${pkg.hsCode || ''}" placeholder="HS Code"></td>
+          <td><input type="number" name="pkg_qty_${index + 1}" value="${pkg.quantity || 0}" min="1" step="1"></td>
+          <td><input type="number" name="pkg_l_${index + 1}" value="${pkg.length || 0}" step="0.01"></td>
+          <td><input type="number" name="pkg_w_${index + 1}" value="${pkg.width || 0}" step="0.01"></td>
+          <td><input type="number" name="pkg_hh_${index + 1}" value="${pkg.height || 0}" step="0.01"></td>
+          <td>
+            <select name="pkg_unit_${index + 1}">
+              <option value="cm" ${pkg.unit === 'cm' ? 'selected' : ''}>cm</option>
+              <option value="inches" ${pkg.unit === 'inches' ? 'selected' : ''}>Inches</option>
+            </select>
+          </td>
+          <td><input type="number" name="pkg_gross_${index + 1}" value="${pkg.grossWeight || 0}" step="0.01"></td>
+          <td class="pkg-dim">0.00</td>
+          <td class="pkg-bill">0.00</td>
+          <td><button type="button" class="btn-delete" onclick="this.closest('tr').remove(); updatePackageTotals();">Delete</button></td>
+        `;
+        pkgBody.appendChild(tr);
+        tr.querySelectorAll('input, select').forEach(inp => inp.addEventListener('input', updatePackageTotals));
+      });
+      if (!shipment.packages || !shipment.packages.length) addPackageRow();
+      updatePackageTotals();
+
+      initializeRevenueSection();
+      (shipment.revenueHeads || []).forEach(item => addRevenueRow({
+        category: item.category,
+        head: item.head,
+        sac: item.sac || '',
+        unit: item.unit || 'Fix',
+        quantity: item.quantity || 0,
+        rate: item.rate || 0,
+        currency: item.currency || 'INR',
+        taxRate: item.taxRate || 0
+      }));
+      updateRevenueTotals();
+
+      initializePurchaseSection();
+      (shipment.purchaseItems || []).forEach(item => addPurchaseRow({
+        vendor: item.vendor,
+        description: item.description,
+        unit: item.unit || 'Fix',
+        quantity: item.quantity || 0,
+        rate: item.rate || 0,
+        currency: item.currency || 'INR',
+        taxRate: item.taxRate || 0
+      }));
+      updateCostTotals();
+
+      updateSummary();
+      setSaveButtonLabel();
+    }, 50);
   } catch (error) {
     alert('Error loading shipment');
   }

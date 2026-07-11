@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'bizlogicx-dev-secret-key-2024';
 const WHATSAPP_SUPPORT_NUMBER = String(process.env.WHATSAPP_SUPPORT_NUMBER || '').replace(/\D/g, '');
 const isProduction = process.env.NODE_ENV === 'production';
@@ -580,8 +581,8 @@ async function start() {
     });
     console.log('✓ Connected to MongoDB');
 
-    app.listen(PORT, () => {
-      console.log(`\n🚀 Biz LogicX Portal running on http://localhost:${PORT}\n`);
+    app.listen(PORT, HOST, () => {
+      console.log(`\n🚀 Biz LogicX Portal running on http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}\n`);
     });
   } catch (error) {
     console.error('❌ Startup failed:', error);

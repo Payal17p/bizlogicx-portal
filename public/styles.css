@@ -157,6 +157,33 @@ body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Sego
 .package-item input, .package-item select { padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; }
 .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
+.revenue-section, .purchase-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; margin-bottom: 24px; }
+.revenue-section .form-section-title, .purchase-section .form-section-title { font-size: 15px; color: #0f172a; letter-spacing: 0.04em; }
+.section-panel { background: #f6fffa; border: 1px solid #d1fae5; border-radius: 16px; padding: 18px; margin-top: 16px; }
+.revenue-panel { background: #f0fdf4; }
+.purchase-panel { background: #fff1f2; border-color: #fecdd3; }
+.panel-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; align-items: end; }
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-group label { font-size: 13px; font-weight: 700; color: #0f172a; }
+.field-group input, .field-group select { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #d1d5db; background: white; color: #0f172a; }
+.field-group input[readonly] { background: #f3f4f6; }
+.field-action { display: flex; align-items: center; }
+.btn-add { width: 100%; }
+.table-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; margin-top: 18px; }
+.section-table th, .section-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+.section-table th { background: #f8fafc; font-size: 12px; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; }
+.section-table td { font-size: 14px; color: #0f172a; }
+.empty-state { text-align: center; color: #94a3b8; padding: 24px 0; }
+.section-total { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 14px 20px; background: #f8fafc; font-weight: 700; color: #0f172a; }
+
+@media (max-width: 1100px) {
+  .panel-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  .panel-row { grid-template-columns: 1fr; }
+}
+
 /* Package table styles */
 .package-table-wrap { background: #fff; border-radius: 8px; padding: 12px; border: 1px solid #eef2f7; }
 .package-note { padding: 12px; background: #eef6ff; border-radius: 6px; color: #134e8b; margin-bottom: 8px; }
